@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Font Path Point Sampling - Canvas Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            overflow-x: auto;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .controls {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        input, select, button {
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            background: #3a3a3a;
+            color: white;
+        }
+
+        button {
+            background: #4CAF50;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        .canvas-container {
+            background: #0a0a0a;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            overflow: auto;
+        }
+
+        canvas {
+            border: 1px solid #333;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .info {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .loading {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .debug {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Font Path Point Sampling</h1>
+        <p>Using SVG pointAtLength() to sample points from transform-free font paths.</p>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Text</label>
+                <input type="text" id="textInput" value="Hello" maxlength="20">
+            </div>
+            
+            <div class="control-group">
+                <label>Font Size</label>
+                <input type="range" id="fontSize" min="50" max="200" value="120">
+                <span id="fontSizeValue">120px</span>
+            </div>
+
+            <div class="control-group">
+                <label>Sample Density</label>
+                <input type="range" id="samplingDensity" min="0.5" max="10" value="2" step="0.1">
+                <span id="samplingValue">2.0</span>
+            </div>
+
+            <div class="control-group">
+                <label>Point Size</label>
+                <input type="range" id="pointSize" min="1" max="8" value="3">
+                <span id="pointSizeValue">3px</span>
+            </div>
+
+            <div class="control-group">
+                <label>Font</label>
+                <select id="fontSelect">
+                    <option value="BebasNeue-Regular.ttf">Bebas Neue (Static)</option>
+                    <option value="Obviously-Variable.ttf">Obviously Variable</option>
+                </select>
+            </div>
+
+            <div class="control-group" id="variableControls" style="display: none;">
+                <label>Weight: <span id="weightValue">400</span></label>
+                <input type="range" id="fontWeight" min="150" max="800" value="400">
+                <label>Width: <span id="widthValue">400</span></label>
+                <input type="range" id="fontWidth" min="100" max="800" value="400">
+            </div>
+
+            <div class="control-group">
+                <label>Animation</label>
+                <select id="animationType">
+                    <option value="none">None</option>
+                    <option value="wave">Wave</option>
+                    <option value="spiral">Spiral</option>
+                    <option value="pulse">Pulse</option>
+                    <option value="flow">Flow Along Path</option>
+                </select>
+            </div>
+
+            <button onclick="generatePoints()">🔄 Regenerate</button>
+            <button onclick="exportCanvas()">💾 Export PNG</button>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas" width="1000" height="400"></canvas>
+            <div class="info">
+                <span id="status">Ready to generate points...</span>
+                <br>
+                <span id="pointCount">Points: 0</span> | 
+                <span id="pathInfo">Paths: 0</span> | 
+                <span id="totalLength">Total Length: 0px</span>
+            </div>
+            <div class="debug" id="debugInfo"></div>
+        </div>
+    </div>
+
+    <!-- Include our font parser -->
+    <script src="../font-parser.js"></script>
+
+    <script>
+        class FontPointSampler {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.parser = new FontParser();
+                this.font = null;
+                this.points = [];
+                this.pathElements = [];
+                this.animationId = null;
+                this.startTime = Date.now();
+                
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                document.getElementById('textInput').addEventListener('input', () => this.generatePoints());
+                document.getElementById('fontSize').addEventListener('input', (e) => {
+                    document.getElementById('fontSizeValue').textContent = e.target.value + 'px';
+                    this.generatePoints();
+                });
+                document.getElementById('samplingDensity').addEventListener('input', (e) => {
+                    document.getElementById('samplingValue').textContent = e.target.value;
+                    this.generatePoints();
+                });
+                document.getElementById('pointSize').addEventListener('input', (e) => {
+                    document.getElementById('pointSizeValue').textContent = e.target.value + 'px';
+                    this.redraw();
+                });
+                document.getElementById('animationType').addEventListener('change', () => {
+                    this.startAnimation();
+                });
+                
+                // Font selection
+                document.getElementById('fontSelect').addEventListener('change', (e) => {
+                    const isVariable = e.target.value.includes('Variable');
+                    document.getElementById('variableControls').style.display = isVariable ? 'block' : 'none';
+                    this.font = null; // Force reload
+                    this.generatePoints();
+                });
+                
+                // Variable font controls
+                document.getElementById('fontWeight').addEventListener('input', (e) => {
+                    document.getElementById('weightValue').textContent = e.target.value;
+                    this.generatePoints();
+                });
+                document.getElementById('fontWidth').addEventListener('input', (e) => {
+                    document.getElementById('widthValue').textContent = e.target.value;
+                    this.generatePoints();
+                });
+            }
+
+            async loadFont() {
+                try {
+                    this.updateStatus('Loading font...', 'loading');
+                    
+                    const selectedFont = document.getElementById('fontSelect').value;
+                    const response = await fetch(`../fonts/${selectedFont}`);
+                    const fontBuffer = await response.arrayBuffer();
+                    this.font = this.parser.fromBuffer(fontBuffer);
+                    
+                    this.updateStatus(`Font loaded: ${selectedFont}`, 'loading');
+                    return true;
+                } catch (error) {
+                    this.updateStatus(`Error loading font: ${error.message}`, 'error');
+                    return false;
+                }
+            }
+
+            async generatePoints() {
+                if (!this.font) {
+                    const loaded = await this.loadFont();
+                    if (!loaded) return;
+                }
+
+                const text = document.getElementById('textInput').value || 'Hello';
+                const fontSize = parseInt(document.getElementById('fontSize').value);
+                const density = parseFloat(document.getElementById('samplingDensity').value);
+
+                try {
+                    this.updateStatus('Generating SVG paths...', 'loading');
+                    
+                    // Prepare options for font parser
+                    const options = { size: fontSize };
+                    
+                    // Add variable font settings if applicable
+                    const currentFont = document.getElementById('fontSelect').value;
+                    if (currentFont.includes('Variable')) {
+                        const weight = parseInt(document.getElementById('fontWeight').value);
+                        const width = parseInt(document.getElementById('fontWidth').value);
+                        options.variable = { wght: weight, wdth: width };
+                    }
+                    
+                    // Generate SVG paths using our font parser
+                    const result = this.parser.path(text, options);
+                    
+                    this.updateStatus('Creating SVG elements for pointAtLength...', 'loading');
+                    
+                    // Create SVG path elements for pointAtLength sampling
+                    this.pathElements = this.createSVGPaths(result);
+                    
+                    this.updateStatus('Sampling points using SVG pointAtLength()...', 'loading');
+                    
+                    // Sample points using SVG's pointAtLength method
+                    this.points = this.samplePointsFromSVGPaths(this.pathElements, density);
+                    
+                    // Update info
+                    const totalLength = this.pathElements.reduce((sum, path) => sum + path.getTotalLength(), 0);
+                    document.getElementById('pointCount').textContent = `Points: ${this.points.length}`;
+                    document.getElementById('pathInfo').textContent = `Paths: ${result.characters.length}`;
+                    document.getElementById('totalLength').textContent = `Total Length: ${totalLength.toFixed(1)}px`;
+                    
+                    // Debug info
+                    const selectedFont = document.getElementById('fontSelect').value;
+                    const [vbX, vbY, vbWidth, vbHeight] = result.viewBox.split(' ').map(Number);
+                    let debugText = `ViewBox: ${vbX.toFixed(1)},${vbY.toFixed(1)} ${vbWidth.toFixed(1)}x${vbHeight.toFixed(1)} • Density: ${density}`;
+                    if (selectedFont.includes('Variable')) {
+                        const weight = document.getElementById('fontWeight').value;
+                        const width = document.getElementById('fontWidth').value;
+                        debugText += ` • wght:${weight} wdth:${width}`;
+                    }
+                    document.getElementById('debugInfo').textContent = debugText;
+                    
+                    this.updateStatus(`Sampled ${this.points.length} points using pointAtLength()`, '');
+                    
+                    this.startAnimation();
+                    
+                } catch (error) {
+                    this.updateStatus(`Error: ${error.message}`, 'error');
+                }
+            }
+
+            createSVGPaths(result) {
+                const pathElements = [];
+                
+                // Parse viewBox for proper centering
+                const [vbX, vbY, vbWidth, vbHeight] = result.viewBox.split(' ').map(Number);
+                
+                // Calculate centering offsets - center the viewBox content in canvas
+                const canvasCenterX = this.canvas.width / 2;
+                const canvasCenterY = this.canvas.height / 2;
+                const viewBoxCenterX = vbX + vbWidth / 2;
+                const viewBoxCenterY = vbY + vbHeight / 2;
+                
+                const offsetX = canvasCenterX - viewBoxCenterX;
+                const offsetY = canvasCenterY - viewBoxCenterY;
+
+                // Create a temporary SVG element to use pointAtLength
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', this.canvas.width);
+                svg.setAttribute('height', this.canvas.height);
+                svg.setAttribute('viewBox', `0 0 ${this.canvas.width} ${this.canvas.height}`);
+                svg.style.position = 'absolute';
+                svg.style.left = '-9999px';
+                svg.style.top = '-9999px';
+                document.body.appendChild(svg);
+
+                result.characters.forEach((char, charIndex) => {
+                    const pathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    pathElement.setAttribute('d', char.path);
+                    
+                    // Apply transform to center the path in our canvas
+                    pathElement.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
+                    
+                    svg.appendChild(pathElement);
+                    
+                    pathElements.push({
+                        element: pathElement,
+                        char: char.char,
+                        charIndex: charIndex,
+                        offsetX: offsetX,
+                        offsetY: offsetY,
+                        getTotalLength: () => pathElement.getTotalLength(),
+                        getPointAtLength: (length) => pathElement.getPointAtLength(length)
+                    });
+                });
+
+                return pathElements;
+            }
+
+            samplePointsFromSVGPaths(pathElements, density) {
+                const points = [];
+
+                pathElements.forEach((pathData) => {
+                    const totalLength = pathData.getTotalLength();
+                    
+                    if (totalLength === 0) return; // Skip empty paths
+                    
+                    // Calculate step size based on density
+                    const step = Math.max(0.5, 10 / density);
+                    const numPoints = Math.ceil(totalLength / step);
+                    
+                    for (let i = 0; i <= numPoints; i++) {
+                        const length = (i / numPoints) * totalLength;
+                        const point = pathData.getPointAtLength(length);
+                        
+                        points.push({
+                            x: point.x,
+                            y: point.y,
+                            char: pathData.char,
+                            charIndex: pathData.charIndex,
+                            pathLength: totalLength,
+                            lengthPosition: length,
+                            progress: length / totalLength, // 0 to 1 along this path
+                            pathIndex: pathData.charIndex
+                        });
+                    }
+                });
+
+                // Post-process: center all points in canvas
+                if (points.length > 0) {
+                    // Find bounds of all points
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    points.forEach(p => {
+                        minX = Math.min(minX, p.x);
+                        minY = Math.min(minY, p.y);
+                        maxX = Math.max(maxX, p.x);
+                        maxY = Math.max(maxY, p.y);
+                    });
+                    
+                    // Calculate current center and desired center
+                    const currentCenterX = (minX + maxX) / 2;
+                    const currentCenterY = (minY + maxY) / 2;
+                    const desiredCenterX = this.canvas.width / 2;
+                    const desiredCenterY = this.canvas.height / 2;
+                    
+                    // Apply centering offset to all points
+                    const centerOffsetX = desiredCenterX - currentCenterX;
+                    const centerOffsetY = desiredCenterY - currentCenterY;
+                    
+                    points.forEach(p => {
+                        p.x += centerOffsetX;
+                        p.y += centerOffsetY;
+                    });
+                }
+
+                return points;
+            }
+
+            startAnimation() {
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+                
+                this.startTime = Date.now();
+                this.animate();
+            }
+
+            animate() {
+                this.redraw();
+                this.animationId = requestAnimationFrame(() => this.animate());
+            }
+
+            redraw() {
+                // Clear canvas
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                const pointSize = parseInt(document.getElementById('pointSize').value);
+                const animationType = document.getElementById('animationType').value;
+                const time = (Date.now() - this.startTime) / 1000;
+
+                // Draw background grid
+                this.drawGrid();
+
+                // Draw points
+                this.points.forEach((point, index) => {
+                    let x = point.x;
+                    let y = point.y;
+                    let alpha = 1;
+                    let size = pointSize;
+
+                    // Apply animation based on path progress and time
+                    switch (animationType) {
+                        case 'wave':
+                            y += Math.sin(time * 2 + point.progress * Math.PI * 4) * 15;
+                            break;
+                        case 'spiral':
+                            const angle = time + point.progress * Math.PI * 2;
+                            const radius = 3;
+                            x += Math.cos(angle) * radius;
+                            y += Math.sin(angle) * radius;
+                            break;
+                        case 'pulse':
+                            size = pointSize + Math.sin(time * 3 + point.progress * Math.PI * 2) * 2;
+                            alpha = 0.5 + Math.sin(time * 2 + point.progress * Math.PI) * 0.5;
+                            break;
+                        case 'flow':
+                            // Animate points flowing along the path
+                            const flowProgress = (time * 0.5 + point.progress) % 1;
+                            alpha = Math.sin(flowProgress * Math.PI) * 0.8 + 0.2;
+                            size = pointSize * (0.5 + Math.sin(flowProgress * Math.PI) * 0.5);
+                            break;
+                    }
+
+                    // Draw point
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, size, 0, Math.PI * 2);
+                    
+                    // Color based on path progress and character
+                    const hue = (point.charIndex * 60 + point.progress * 120) % 360;
+                    this.ctx.fillStyle = `hsla(${hue}, 70%, 60%, ${alpha})`;
+                    this.ctx.fill();
+                });
+
+                // Draw stats
+                this.drawStats();
+            }
+
+            drawGrid() {
+                this.ctx.strokeStyle = '#f0f0f0';
+                this.ctx.lineWidth = 0.5;
+                
+                const gridSize = 50;
+                
+                for (let x = 0; x <= this.canvas.width; x += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                
+                for (let y = 0; y <= this.canvas.height; y += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+                }
+            }
+
+            drawStats() {
+                this.ctx.fillStyle = '#333';
+                this.ctx.font = '12px Arial';
+                this.ctx.fillText(`Points: ${this.points.length}`, 10, 20);
+                this.ctx.fillText(`Method: SVG pointAtLength()`, 10, 35);
+                
+                // Show offset info if we have path elements
+                if (this.pathElements.length > 0) {
+                    const offset = this.pathElements[0];
+                    this.ctx.fillText(`Offset: x=${offset.offsetX.toFixed(1)}, y=${offset.offsetY.toFixed(1)}`, 10, 50);
+                } else {
+                    this.ctx.fillText(`Transform-free coordinates`, 10, 50);
+                }
+                
+                // Draw center crosshairs for debugging
+                this.ctx.strokeStyle = '#ddd';
+                this.ctx.lineWidth = 1;
+                this.ctx.setLineDash([5, 5]);
+                
+                // Vertical center line
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.canvas.width / 2, 0);
+                this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+                this.ctx.stroke();
+                
+                // Horizontal center line
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, this.canvas.height / 2);
+                this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
+                this.ctx.stroke();
+                
+                this.ctx.setLineDash([]);
+            }
+
+            updateStatus(message, type = '') {
+                const statusEl = document.getElementById('status');
+                statusEl.textContent = message;
+                statusEl.className = type;
+            }
+        }
+
+        // Export functions
+        function generatePoints() {
+            sampler.generatePoints();
+        }
+
+        function exportCanvas() {
+            const link = document.createElement('a');
+            link.download = 'font-points-svg-sampled.png';
+            link.href = sampler.canvas.toDataURL();
+            link.click();
+        }
+
+        // Initialize when page loads
+        const sampler = new FontPointSampler();
+        
+        // Auto-generate on load
+        window.addEventListener('load', () => {
+            setTimeout(() => generatePoints(), 500);
+        });
+    </script>
+</body>
+</html> 
