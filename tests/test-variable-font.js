@@ -1,5 +1,5 @@
 const fs = require("fs");
-const FontParser = require("./src/font-parser");
+const FontParser = require("../src/font-parser");
 
 // Load the variable font
 const fontBuffer = fs.readFileSync("./src/fonts/Obviously-Variable.ttf").buffer;
