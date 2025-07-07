@@ -8,7 +8,7 @@
 class FontSDFRenderer {
   constructor(fontParser) {
     this.fontParser = fontParser;
-    this.maxBezierSegments = 48; // Maximum bezier segments per glyph (increased for complex letters like B, R, S)
+    this.maxBezierSegments = 128; // Maximum bezier segments per glyph (increased for complex variable font characters)
     this.maxContours = 8; // Maximum contours per glyph (increased for complex letters)
     this.fontType = fontParser.fontType; // 'truetype' or 'cff'
   }
@@ -20,6 +20,13 @@ class FontSDFRenderer {
    * @returns {Object} SDF data ready for shader injection
    */
   extractSDFData(character, options = {}) {
+    // Apply variable font settings if provided
+    if (options.variable && this.fontParser.data.isVariable) {
+      this.fontParser.setVariation(options.variable);
+      console.log(`Applied font variation for SDF:`, options.variable);
+      console.log(`Current variation:`, this.fontParser.getVariation());
+    }
+
     const glyphId = this.fontParser.getGlyphId(character);
     const glyph = this.fontParser.parseGlyph(glyphId);
 
@@ -547,12 +554,12 @@ class FontSDFRenderer {
     return `
             precision highp float;
             
-            // Configuration - increased for better complex letter support
-            #define MAX_SEGMENTS 48
+            // Configuration - increased for complex variable font characters
+            #define MAX_SEGMENTS 128
             #define MAX_CONTOURS 8
             
-            // Uniforms - increased for better complex letter support
-            uniform float u_controlPoints[288]; // MAX_SEGMENTS * 3 * 2 = 48 * 3 * 2 = 288
+            // Uniforms - increased for complex variable font characters
+            uniform float u_controlPoints[768]; // MAX_SEGMENTS * 3 * 2 = 128 * 3 * 2 = 768
             uniform float u_contourInfo[24]; // MAX_CONTOURS * 3 = 8 * 3 = 24
             uniform vec4 u_bounds; // minX, minY, maxX, maxY
             uniform int u_totalSegments;
@@ -710,6 +717,247 @@ class FontSDFRenderer {
                 if (index == 141) return vec2(u_controlPoints[282], u_controlPoints[283]);
                 if (index == 142) return vec2(u_controlPoints[284], u_controlPoints[285]);
                 if (index == 143) return vec2(u_controlPoints[286], u_controlPoints[287]);
+                if (index == 144) return vec2(u_controlPoints[288], u_controlPoints[289]);
+                if (index == 145) return vec2(u_controlPoints[290], u_controlPoints[291]);
+                if (index == 146) return vec2(u_controlPoints[292], u_controlPoints[293]);
+                if (index == 147) return vec2(u_controlPoints[294], u_controlPoints[295]);
+                if (index == 148) return vec2(u_controlPoints[296], u_controlPoints[297]);
+                if (index == 149) return vec2(u_controlPoints[298], u_controlPoints[299]);
+                if (index == 150) return vec2(u_controlPoints[300], u_controlPoints[301]);
+                if (index == 151) return vec2(u_controlPoints[302], u_controlPoints[303]);
+                if (index == 152) return vec2(u_controlPoints[304], u_controlPoints[305]);
+                if (index == 153) return vec2(u_controlPoints[306], u_controlPoints[307]);
+                if (index == 154) return vec2(u_controlPoints[308], u_controlPoints[309]);
+                if (index == 155) return vec2(u_controlPoints[310], u_controlPoints[311]);
+                if (index == 156) return vec2(u_controlPoints[312], u_controlPoints[313]);
+                if (index == 157) return vec2(u_controlPoints[314], u_controlPoints[315]);
+                if (index == 158) return vec2(u_controlPoints[316], u_controlPoints[317]);
+                if (index == 159) return vec2(u_controlPoints[318], u_controlPoints[319]);
+                if (index == 160) return vec2(u_controlPoints[320], u_controlPoints[321]);
+                if (index == 161) return vec2(u_controlPoints[322], u_controlPoints[323]);
+                if (index == 162) return vec2(u_controlPoints[324], u_controlPoints[325]);
+                if (index == 163) return vec2(u_controlPoints[326], u_controlPoints[327]);
+                if (index == 164) return vec2(u_controlPoints[328], u_controlPoints[329]);
+                if (index == 165) return vec2(u_controlPoints[330], u_controlPoints[331]);
+                if (index == 166) return vec2(u_controlPoints[332], u_controlPoints[333]);
+                if (index == 167) return vec2(u_controlPoints[334], u_controlPoints[335]);
+                if (index == 168) return vec2(u_controlPoints[336], u_controlPoints[337]);
+                if (index == 169) return vec2(u_controlPoints[338], u_controlPoints[339]);
+                if (index == 170) return vec2(u_controlPoints[340], u_controlPoints[341]);
+                if (index == 171) return vec2(u_controlPoints[342], u_controlPoints[343]);
+                if (index == 172) return vec2(u_controlPoints[344], u_controlPoints[345]);
+                if (index == 173) return vec2(u_controlPoints[346], u_controlPoints[347]);
+                if (index == 174) return vec2(u_controlPoints[348], u_controlPoints[349]);
+                if (index == 175) return vec2(u_controlPoints[350], u_controlPoints[351]);
+                if (index == 176) return vec2(u_controlPoints[352], u_controlPoints[353]);
+                if (index == 177) return vec2(u_controlPoints[354], u_controlPoints[355]);
+                if (index == 178) return vec2(u_controlPoints[356], u_controlPoints[357]);
+                if (index == 179) return vec2(u_controlPoints[358], u_controlPoints[359]);
+                if (index == 180) return vec2(u_controlPoints[360], u_controlPoints[361]);
+                if (index == 181) return vec2(u_controlPoints[362], u_controlPoints[363]);
+                if (index == 182) return vec2(u_controlPoints[364], u_controlPoints[365]);
+                if (index == 183) return vec2(u_controlPoints[366], u_controlPoints[367]);
+                if (index == 184) return vec2(u_controlPoints[368], u_controlPoints[369]);
+                if (index == 185) return vec2(u_controlPoints[370], u_controlPoints[371]);
+                if (index == 186) return vec2(u_controlPoints[372], u_controlPoints[373]);
+                if (index == 187) return vec2(u_controlPoints[374], u_controlPoints[375]);
+                if (index == 188) return vec2(u_controlPoints[376], u_controlPoints[377]);
+                if (index == 189) return vec2(u_controlPoints[378], u_controlPoints[379]);
+                if (index == 190) return vec2(u_controlPoints[380], u_controlPoints[381]);
+                if (index == 191) return vec2(u_controlPoints[382], u_controlPoints[383]);
+                // Extended for 128 segments (indices 192-383)
+                if (index == 192) return vec2(u_controlPoints[384], u_controlPoints[385]);
+                if (index == 193) return vec2(u_controlPoints[386], u_controlPoints[387]);
+                if (index == 194) return vec2(u_controlPoints[388], u_controlPoints[389]);
+                if (index == 195) return vec2(u_controlPoints[390], u_controlPoints[391]);
+                if (index == 196) return vec2(u_controlPoints[392], u_controlPoints[393]);
+                if (index == 197) return vec2(u_controlPoints[394], u_controlPoints[395]);
+                if (index == 198) return vec2(u_controlPoints[396], u_controlPoints[397]);
+                if (index == 199) return vec2(u_controlPoints[398], u_controlPoints[399]);
+                if (index == 200) return vec2(u_controlPoints[400], u_controlPoints[401]);
+                if (index == 201) return vec2(u_controlPoints[402], u_controlPoints[403]);
+                if (index == 202) return vec2(u_controlPoints[404], u_controlPoints[405]);
+                if (index == 203) return vec2(u_controlPoints[406], u_controlPoints[407]);
+                if (index == 204) return vec2(u_controlPoints[408], u_controlPoints[409]);
+                if (index == 205) return vec2(u_controlPoints[410], u_controlPoints[411]);
+                if (index == 206) return vec2(u_controlPoints[412], u_controlPoints[413]);
+                if (index == 207) return vec2(u_controlPoints[414], u_controlPoints[415]);
+                if (index == 208) return vec2(u_controlPoints[416], u_controlPoints[417]);
+                if (index == 209) return vec2(u_controlPoints[418], u_controlPoints[419]);
+                if (index == 210) return vec2(u_controlPoints[420], u_controlPoints[421]);
+                if (index == 211) return vec2(u_controlPoints[422], u_controlPoints[423]);
+                if (index == 212) return vec2(u_controlPoints[424], u_controlPoints[425]);
+                if (index == 213) return vec2(u_controlPoints[426], u_controlPoints[427]);
+                if (index == 214) return vec2(u_controlPoints[428], u_controlPoints[429]);
+                if (index == 215) return vec2(u_controlPoints[430], u_controlPoints[431]);
+                if (index == 216) return vec2(u_controlPoints[432], u_controlPoints[433]);
+                if (index == 217) return vec2(u_controlPoints[434], u_controlPoints[435]);
+                if (index == 218) return vec2(u_controlPoints[436], u_controlPoints[437]);
+                if (index == 219) return vec2(u_controlPoints[438], u_controlPoints[439]);
+                if (index == 220) return vec2(u_controlPoints[440], u_controlPoints[441]);
+                if (index == 221) return vec2(u_controlPoints[442], u_controlPoints[443]);
+                if (index == 222) return vec2(u_controlPoints[444], u_controlPoints[445]);
+                if (index == 223) return vec2(u_controlPoints[446], u_controlPoints[447]);
+                if (index == 224) return vec2(u_controlPoints[448], u_controlPoints[449]);
+                if (index == 225) return vec2(u_controlPoints[450], u_controlPoints[451]);
+                if (index == 226) return vec2(u_controlPoints[452], u_controlPoints[453]);
+                if (index == 227) return vec2(u_controlPoints[454], u_controlPoints[455]);
+                if (index == 228) return vec2(u_controlPoints[456], u_controlPoints[457]);
+                if (index == 229) return vec2(u_controlPoints[458], u_controlPoints[459]);
+                if (index == 230) return vec2(u_controlPoints[460], u_controlPoints[461]);
+                if (index == 231) return vec2(u_controlPoints[462], u_controlPoints[463]);
+                if (index == 232) return vec2(u_controlPoints[464], u_controlPoints[465]);
+                if (index == 233) return vec2(u_controlPoints[466], u_controlPoints[467]);
+                if (index == 234) return vec2(u_controlPoints[468], u_controlPoints[469]);
+                if (index == 235) return vec2(u_controlPoints[470], u_controlPoints[471]);
+                if (index == 236) return vec2(u_controlPoints[472], u_controlPoints[473]);
+                if (index == 237) return vec2(u_controlPoints[474], u_controlPoints[475]);
+                if (index == 238) return vec2(u_controlPoints[476], u_controlPoints[477]);
+                if (index == 239) return vec2(u_controlPoints[478], u_controlPoints[479]);
+                if (index == 240) return vec2(u_controlPoints[480], u_controlPoints[481]);
+                if (index == 241) return vec2(u_controlPoints[482], u_controlPoints[483]);
+                if (index == 242) return vec2(u_controlPoints[484], u_controlPoints[485]);
+                if (index == 243) return vec2(u_controlPoints[486], u_controlPoints[487]);
+                if (index == 244) return vec2(u_controlPoints[488], u_controlPoints[489]);
+                if (index == 245) return vec2(u_controlPoints[490], u_controlPoints[491]);
+                if (index == 246) return vec2(u_controlPoints[492], u_controlPoints[493]);
+                if (index == 247) return vec2(u_controlPoints[494], u_controlPoints[495]);
+                if (index == 248) return vec2(u_controlPoints[496], u_controlPoints[497]);
+                if (index == 249) return vec2(u_controlPoints[498], u_controlPoints[499]);
+                if (index == 250) return vec2(u_controlPoints[500], u_controlPoints[501]);
+                if (index == 251) return vec2(u_controlPoints[502], u_controlPoints[503]);
+                if (index == 252) return vec2(u_controlPoints[504], u_controlPoints[505]);
+                if (index == 253) return vec2(u_controlPoints[506], u_controlPoints[507]);
+                if (index == 254) return vec2(u_controlPoints[508], u_controlPoints[509]);
+                if (index == 255) return vec2(u_controlPoints[510], u_controlPoints[511]);
+                if (index == 256) return vec2(u_controlPoints[512], u_controlPoints[513]);
+                if (index == 257) return vec2(u_controlPoints[514], u_controlPoints[515]);
+                if (index == 258) return vec2(u_controlPoints[516], u_controlPoints[517]);
+                if (index == 259) return vec2(u_controlPoints[518], u_controlPoints[519]);
+                if (index == 260) return vec2(u_controlPoints[520], u_controlPoints[521]);
+                if (index == 261) return vec2(u_controlPoints[522], u_controlPoints[523]);
+                if (index == 262) return vec2(u_controlPoints[524], u_controlPoints[525]);
+                if (index == 263) return vec2(u_controlPoints[526], u_controlPoints[527]);
+                if (index == 264) return vec2(u_controlPoints[528], u_controlPoints[529]);
+                if (index == 265) return vec2(u_controlPoints[530], u_controlPoints[531]);
+                if (index == 266) return vec2(u_controlPoints[532], u_controlPoints[533]);
+                if (index == 267) return vec2(u_controlPoints[534], u_controlPoints[535]);
+                if (index == 268) return vec2(u_controlPoints[536], u_controlPoints[537]);
+                if (index == 269) return vec2(u_controlPoints[538], u_controlPoints[539]);
+                if (index == 270) return vec2(u_controlPoints[540], u_controlPoints[541]);
+                if (index == 271) return vec2(u_controlPoints[542], u_controlPoints[543]);
+                if (index == 272) return vec2(u_controlPoints[544], u_controlPoints[545]);
+                if (index == 273) return vec2(u_controlPoints[546], u_controlPoints[547]);
+                if (index == 274) return vec2(u_controlPoints[548], u_controlPoints[549]);
+                if (index == 275) return vec2(u_controlPoints[550], u_controlPoints[551]);
+                if (index == 276) return vec2(u_controlPoints[552], u_controlPoints[553]);
+                if (index == 277) return vec2(u_controlPoints[554], u_controlPoints[555]);
+                if (index == 278) return vec2(u_controlPoints[556], u_controlPoints[557]);
+                if (index == 279) return vec2(u_controlPoints[558], u_controlPoints[559]);
+                if (index == 280) return vec2(u_controlPoints[560], u_controlPoints[561]);
+                if (index == 281) return vec2(u_controlPoints[562], u_controlPoints[563]);
+                if (index == 282) return vec2(u_controlPoints[564], u_controlPoints[565]);
+                if (index == 283) return vec2(u_controlPoints[566], u_controlPoints[567]);
+                if (index == 284) return vec2(u_controlPoints[568], u_controlPoints[569]);
+                if (index == 285) return vec2(u_controlPoints[570], u_controlPoints[571]);
+                if (index == 286) return vec2(u_controlPoints[572], u_controlPoints[573]);
+                if (index == 287) return vec2(u_controlPoints[574], u_controlPoints[575]);
+                if (index == 288) return vec2(u_controlPoints[576], u_controlPoints[577]);
+                if (index == 289) return vec2(u_controlPoints[578], u_controlPoints[579]);
+                if (index == 290) return vec2(u_controlPoints[580], u_controlPoints[581]);
+                if (index == 291) return vec2(u_controlPoints[582], u_controlPoints[583]);
+                if (index == 292) return vec2(u_controlPoints[584], u_controlPoints[585]);
+                if (index == 293) return vec2(u_controlPoints[586], u_controlPoints[587]);
+                if (index == 294) return vec2(u_controlPoints[588], u_controlPoints[589]);
+                if (index == 295) return vec2(u_controlPoints[590], u_controlPoints[591]);
+                if (index == 296) return vec2(u_controlPoints[592], u_controlPoints[593]);
+                if (index == 297) return vec2(u_controlPoints[594], u_controlPoints[595]);
+                if (index == 298) return vec2(u_controlPoints[596], u_controlPoints[597]);
+                if (index == 299) return vec2(u_controlPoints[598], u_controlPoints[599]);
+                if (index == 300) return vec2(u_controlPoints[600], u_controlPoints[601]);
+                if (index == 301) return vec2(u_controlPoints[602], u_controlPoints[603]);
+                if (index == 302) return vec2(u_controlPoints[604], u_controlPoints[605]);
+                if (index == 303) return vec2(u_controlPoints[606], u_controlPoints[607]);
+                if (index == 304) return vec2(u_controlPoints[608], u_controlPoints[609]);
+                if (index == 305) return vec2(u_controlPoints[610], u_controlPoints[611]);
+                if (index == 306) return vec2(u_controlPoints[612], u_controlPoints[613]);
+                if (index == 307) return vec2(u_controlPoints[614], u_controlPoints[615]);
+                if (index == 308) return vec2(u_controlPoints[616], u_controlPoints[617]);
+                if (index == 309) return vec2(u_controlPoints[618], u_controlPoints[619]);
+                if (index == 310) return vec2(u_controlPoints[620], u_controlPoints[621]);
+                if (index == 311) return vec2(u_controlPoints[622], u_controlPoints[623]);
+                if (index == 312) return vec2(u_controlPoints[624], u_controlPoints[625]);
+                if (index == 313) return vec2(u_controlPoints[626], u_controlPoints[627]);
+                if (index == 314) return vec2(u_controlPoints[628], u_controlPoints[629]);
+                if (index == 315) return vec2(u_controlPoints[630], u_controlPoints[631]);
+                if (index == 316) return vec2(u_controlPoints[632], u_controlPoints[633]);
+                if (index == 317) return vec2(u_controlPoints[634], u_controlPoints[635]);
+                if (index == 318) return vec2(u_controlPoints[636], u_controlPoints[637]);
+                if (index == 319) return vec2(u_controlPoints[638], u_controlPoints[639]);
+                if (index == 320) return vec2(u_controlPoints[640], u_controlPoints[641]);
+                if (index == 321) return vec2(u_controlPoints[642], u_controlPoints[643]);
+                if (index == 322) return vec2(u_controlPoints[644], u_controlPoints[645]);
+                if (index == 323) return vec2(u_controlPoints[646], u_controlPoints[647]);
+                if (index == 324) return vec2(u_controlPoints[648], u_controlPoints[649]);
+                if (index == 325) return vec2(u_controlPoints[650], u_controlPoints[651]);
+                if (index == 326) return vec2(u_controlPoints[652], u_controlPoints[653]);
+                if (index == 327) return vec2(u_controlPoints[654], u_controlPoints[655]);
+                if (index == 328) return vec2(u_controlPoints[656], u_controlPoints[657]);
+                if (index == 329) return vec2(u_controlPoints[658], u_controlPoints[659]);
+                if (index == 330) return vec2(u_controlPoints[660], u_controlPoints[661]);
+                if (index == 331) return vec2(u_controlPoints[662], u_controlPoints[663]);
+                if (index == 332) return vec2(u_controlPoints[664], u_controlPoints[665]);
+                if (index == 333) return vec2(u_controlPoints[666], u_controlPoints[667]);
+                if (index == 334) return vec2(u_controlPoints[668], u_controlPoints[669]);
+                if (index == 335) return vec2(u_controlPoints[670], u_controlPoints[671]);
+                if (index == 336) return vec2(u_controlPoints[672], u_controlPoints[673]);
+                if (index == 337) return vec2(u_controlPoints[674], u_controlPoints[675]);
+                if (index == 338) return vec2(u_controlPoints[676], u_controlPoints[677]);
+                if (index == 339) return vec2(u_controlPoints[678], u_controlPoints[679]);
+                if (index == 340) return vec2(u_controlPoints[680], u_controlPoints[681]);
+                if (index == 341) return vec2(u_controlPoints[682], u_controlPoints[683]);
+                if (index == 342) return vec2(u_controlPoints[684], u_controlPoints[685]);
+                if (index == 343) return vec2(u_controlPoints[686], u_controlPoints[687]);
+                if (index == 344) return vec2(u_controlPoints[688], u_controlPoints[689]);
+                if (index == 345) return vec2(u_controlPoints[690], u_controlPoints[691]);
+                if (index == 346) return vec2(u_controlPoints[692], u_controlPoints[693]);
+                if (index == 347) return vec2(u_controlPoints[694], u_controlPoints[695]);
+                if (index == 348) return vec2(u_controlPoints[696], u_controlPoints[697]);
+                if (index == 349) return vec2(u_controlPoints[698], u_controlPoints[699]);
+                if (index == 350) return vec2(u_controlPoints[700], u_controlPoints[701]);
+                if (index == 351) return vec2(u_controlPoints[702], u_controlPoints[703]);
+                if (index == 352) return vec2(u_controlPoints[704], u_controlPoints[705]);
+                if (index == 353) return vec2(u_controlPoints[706], u_controlPoints[707]);
+                if (index == 354) return vec2(u_controlPoints[708], u_controlPoints[709]);
+                if (index == 355) return vec2(u_controlPoints[710], u_controlPoints[711]);
+                if (index == 356) return vec2(u_controlPoints[712], u_controlPoints[713]);
+                if (index == 357) return vec2(u_controlPoints[714], u_controlPoints[715]);
+                if (index == 358) return vec2(u_controlPoints[716], u_controlPoints[717]);
+                if (index == 359) return vec2(u_controlPoints[718], u_controlPoints[719]);
+                if (index == 360) return vec2(u_controlPoints[720], u_controlPoints[721]);
+                if (index == 361) return vec2(u_controlPoints[722], u_controlPoints[723]);
+                if (index == 362) return vec2(u_controlPoints[724], u_controlPoints[725]);
+                if (index == 363) return vec2(u_controlPoints[726], u_controlPoints[727]);
+                if (index == 364) return vec2(u_controlPoints[728], u_controlPoints[729]);
+                if (index == 365) return vec2(u_controlPoints[730], u_controlPoints[731]);
+                if (index == 366) return vec2(u_controlPoints[732], u_controlPoints[733]);
+                if (index == 367) return vec2(u_controlPoints[734], u_controlPoints[735]);
+                if (index == 368) return vec2(u_controlPoints[736], u_controlPoints[737]);
+                if (index == 369) return vec2(u_controlPoints[738], u_controlPoints[739]);
+                if (index == 370) return vec2(u_controlPoints[740], u_controlPoints[741]);
+                if (index == 371) return vec2(u_controlPoints[742], u_controlPoints[743]);
+                if (index == 372) return vec2(u_controlPoints[744], u_controlPoints[745]);
+                if (index == 373) return vec2(u_controlPoints[746], u_controlPoints[747]);
+                if (index == 374) return vec2(u_controlPoints[748], u_controlPoints[749]);
+                if (index == 375) return vec2(u_controlPoints[750], u_controlPoints[751]);
+                if (index == 376) return vec2(u_controlPoints[752], u_controlPoints[753]);
+                if (index == 377) return vec2(u_controlPoints[754], u_controlPoints[755]);
+                if (index == 378) return vec2(u_controlPoints[756], u_controlPoints[757]);
+                if (index == 379) return vec2(u_controlPoints[758], u_controlPoints[759]);
+                if (index == 380) return vec2(u_controlPoints[760], u_controlPoints[761]);
+                if (index == 381) return vec2(u_controlPoints[762], u_controlPoints[763]);
+                if (index == 382) return vec2(u_controlPoints[764], u_controlPoints[765]);
+                if (index == 383) return vec2(u_controlPoints[766], u_controlPoints[767]);
                 return vec2(0.0, 0.0); // fallback
             }
             
@@ -853,7 +1101,7 @@ class FontSDFRenderer {
             float isInsideContour(vec2 pos, float segmentStart, float segmentCount) {
                 float winding = 0.0;
                 
-                for (int i = 0; i < 48; i++) {
+                for (int i = 0; i < 128; i++) {
                     if (float(i) >= segmentCount) break;
                     
                     int segmentIdx = int(segmentStart) + i;
@@ -929,7 +1177,7 @@ class FontSDFRenderer {
                     
                     // Find minimum distance to this contour
                     float contourMinDistance = 1e6;
-                    for (int i = 0; i < 48; i++) {
+                    for (int i = 0; i < 128; i++) {
                         if (float(i) >= segmentCount) break;
                         
                         int segmentIdx = int(segmentStart) + i;

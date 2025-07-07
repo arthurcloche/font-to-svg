@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Font SVG Character Sheet - Path Extraction Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .control-group label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        
+        .control-group input, .control-group select {
+            padding: 8px;
+            background: #fff;
+            border: 1px solid #ddd;
+            color: #333;
+            border-radius: 4px;
+        }
+        
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .character-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .character-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .character-card.error {
+            background: #fee;
+            border-color: #fcc;
+        }
+        
+        .character-card.empty {
+            background: #fef9e7;
+            border-color: #f0e68c;
+        }
+        
+        .character-display {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 8px;
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        
+        .character-label {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .character-info {
+            font-size: 10px;
+            color: #666;
+            line-height: 1.2;
+        }
+        
+        .section-title {
+            background: #333;
+            color: white;
+            padding: 8px 16px;
+            margin: 20px 0 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .status-bar {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .status-item {
+            display: inline-block;
+            margin-right: 20px;
+            font-size: 12px;
+        }
+        
+        .status-good { color: #0a84ff; }
+        .status-warning { color: #ff9500; }
+        .status-error { color: #ff3b30; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Font SVG Character Sheet</h1>
+        <p>Testing basic SVG path extraction from font files without SDF processing</p>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="fontSelect">Font</label>
+                <select id="fontSelect">
+                    <option value="BebasNeue-Regular.ttf">Bebas Neue (Recommended)</option>
+                    <option value="Obviously-Variable.ttf">Obviously Variable</option>
+                    <option value="Newsreader-VariableFont_opsz,wght.ttf">Newsreader Variable</option>
+                    <option value="Inter_18pt-Regular.ttf">Inter Regular (Component Issues)</option>
+                    <option value="Inter_28pt-Medium.ttf">Inter Medium (Circular References)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="fontSize">Font Size</label>
+                <input type="range" id="fontSize" min="12" max="72" value="48">
+                <span id="fontSizeValue">48px</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="showPaths">Show SVG Paths</label>
+                <input type="checkbox" id="showPaths">
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-item">Font: <span id="statusFont">-</span></div>
+            <div class="status-item">Characters: <span id="statusTotal" class="status-good">0</span></div>
+            <div class="status-item">Successful: <span id="statusSuccess" class="status-good">0</span></div>
+            <div class="status-item">Empty: <span id="statusEmpty" class="status-warning">0</span></div>
+            <div class="status-item">Errors: <span id="statusError" class="status-error">0</span></div>
+        </div>
+        
+        <div class="section-title">Lowercase Letters</div>
+        <div class="character-grid" id="lowercaseGrid"></div>
+        
+        <div class="section-title">Uppercase Letters</div>
+        <div class="character-grid" id="uppercaseGrid"></div>
+        
+        <div class="section-title">Numbers</div>
+        <div class="character-grid" id="numbersGrid"></div>
+        
+        <div class="section-title">Basic Punctuation</div>
+        <div class="character-grid" id="punctuationGrid"></div>
+        
+        <div class="section-title">Diacritics</div>
+        <div class="character-grid" id="diacriticsGrid"></div>
+    </div>
+
+    <script src="../font-parser.js"></script>
+    <script>
+        let fontParser = null;
+        let currentFont = null;
+        
+        const characterSets = {
+            lowercase: 'abcdefghijklmnopqrstuvwxyz',
+            uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            numbers: '0123456789',
+            punctuation: '.,;:!?()[]{}"\'-',
+            diacritics: 'àáâãäåèéêëìíîïòóôõöùúûüýÿñç'
+        };
+        
+        let stats = {
+            total: 0,
+            success: 0,
+            empty: 0,
+            error: 0
+        };
+        
+        async function loadFont() {
+            const fontSelect = document.getElementById('fontSelect');
+            const selectedFont = fontSelect.value;
+            
+            try {
+                document.getElementById('statusFont').textContent = 'Loading...';
+                
+                fontParser = new FontParser();
+                await fontParser.from(`../fonts/${selectedFont}`);
+                currentFont = selectedFont;
+                
+                document.getElementById('statusFont').textContent = selectedFont;
+                console.log('Font loaded successfully:', selectedFont);
+                
+                generateCharacterSheet();
+                
+            } catch (error) {
+                console.error('Error loading font:', error);
+                document.getElementById('statusFont').textContent = 'Error loading font';
+            }
+        }
+        
+        function generateCharacterSheet() {
+            if (!fontParser) return;
+            
+            // Reset stats
+            stats = { total: 0, success: 0, empty: 0, error: 0 };
+            
+            // Generate each section
+            Object.keys(characterSets).forEach(setName => {
+                const characters = characterSets[setName];
+                const gridElement = document.getElementById(setName + 'Grid');
+                gridElement.innerHTML = '';
+                
+                for (let char of characters) {
+                    generateCharacterCard(char, gridElement);
+                }
+            });
+            
+            updateStatusBar();
+        }
+        
+        function generateCharacterCard(character, container) {
+            const card = document.createElement('div');
+            card.className = 'character-card';
+            
+            const display = document.createElement('div');
+            display.className = 'character-display';
+            
+            const label = document.createElement('div');
+            label.className = 'character-label';
+            label.textContent = character;
+            
+            const info = document.createElement('div');
+            info.className = 'character-info';
+            
+            stats.total++;
+            
+            try {
+                // Get the glyph ID
+                const glyphId = fontParser.getGlyphId(character);
+                
+                if (glyphId === undefined || glyphId < 0) {
+                    info.innerHTML = `No glyph found`;
+                    card.classList.add('error');
+                    stats.error++;
+                } else {
+                    // Try to get SVG path
+                    const fontSize = parseInt(document.getElementById('fontSize').value);
+                    const svgResult = fontParser.path(character, { size: fontSize });
+                    
+                    if (!svgResult || !svgResult.characters || svgResult.characters.length === 0) {
+                        // Empty path
+                        info.innerHTML = `Glyph ${glyphId}<br>Empty path`;
+                        card.classList.add('empty');
+                        stats.empty++;
+                        
+                        // Still create an empty SVG
+                        display.innerHTML = `<svg width="80" height="80" viewBox="0 0 ${fontSize} ${fontSize}">
+                            <text x="40" y="50" text-anchor="middle" font-size="12" fill="#999">Empty</text>
+                        </svg>`;
+                        
+                    } else {
+                        // Successful extraction
+                        const charData = svgResult.characters[0];
+                        
+                        // Create SVG with proper coordinate system
+                        // Use the font's actual viewBox data, with fallback for centering
+                        let viewBoxStr;
+                        if (svgResult.viewBox) {
+                            viewBoxStr = svgResult.viewBox;
+                        } else {
+                            // Fallback: create a viewBox that centers the character
+                            const padding = fontSize * 0.1;
+                            const width = svgResult.width || fontSize;
+                            const height = svgResult.height || fontSize;
+                            viewBoxStr = `${-padding} ${-height - padding} ${width + padding * 2} ${height + padding * 2}`;
+                        }
+                        
+                        info.innerHTML = `Glyph ${glyphId}<br>Path: ${charData.path ? charData.path.length : 0} chars<br>ViewBox: ${viewBoxStr.substring(0, 30)}...`;
+                        stats.success++;
+                        
+                        display.innerHTML = `<svg width="80" height="80" viewBox="${viewBoxStr}" style="background: rgba(240,240,240,0.3);">
+                            <path d="${charData.path || ''}" fill="#333" stroke="none"/>
+                        </svg>`;
+                        
+                        // Show path data if requested
+                        if (document.getElementById('showPaths').checked) {
+                            const pathPreview = charData.path || '';
+                            info.innerHTML += `<br><code style="font-size: 8px; word-break: break-all;">${pathPreview.substring(0, 50)}${pathPreview.length > 50 ? '...' : ''}</code>`;
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                console.error(`Error processing character '${character}':`, error);
+                info.innerHTML = `Error:<br>${error.message.substring(0, 30)}${error.message.length > 30 ? '...' : ''}`;
+                card.classList.add('error');
+                stats.error++;
+                
+                display.innerHTML = `<svg width="80" height="80" viewBox="0 0 80 80">
+                    <text x="40" y="40" text-anchor="middle" font-size="12" fill="#f33">Error</text>
+                </svg>`;
+            }
+            
+            card.appendChild(display);
+            card.appendChild(label);
+            card.appendChild(info);
+            container.appendChild(card);
+        }
+        
+        function updateStatusBar() {
+            document.getElementById('statusTotal').textContent = stats.total;
+            document.getElementById('statusSuccess').textContent = stats.success;
+            document.getElementById('statusEmpty').textContent = stats.empty;
+            document.getElementById('statusError').textContent = stats.error;
+        }
+        
+        // Event listeners
+        document.getElementById('fontSelect').addEventListener('change', loadFont);
+        document.getElementById('fontSize').addEventListener('input', function() {
+            document.getElementById('fontSizeValue').textContent = this.value + 'px';
+            if (fontParser) generateCharacterSheet();
+        });
+        document.getElementById('showPaths').addEventListener('change', function() {
+            if (fontParser) generateCharacterSheet();
+        });
+        
+        // Initialize
+        loadFont();
+    </script>
+</body>
+</html>

@@ -31,7 +31,7 @@
 class FontSDFExtension {
   constructor(fontParser, options = {}) {
     this.fontParser = fontParser;
-    this.maxBezierSegments = options.maxBezierSegments || 48;
+    this.maxBezierSegments = options.maxBezierSegments || 128; // Increased for complex variable font characters
     this.maxContours = options.maxContours || 8;
     this.enableDebugLogging = options.enableDebugLogging || false;
 
@@ -47,22 +47,52 @@ class FontSDFExtension {
   extractSDFData(character, options = {}) {
     const glyphId = this.fontParser.getGlyphId(character);
 
+    // CRITICAL: Block known problematic glyphs that cause browser crashes
+    const problematicGlyphs = [685, 686, 687, 689, 691, 692, 693, 719];
+    if (problematicGlyphs.includes(glyphId)) {
+      if (this.enableDebugLogging) {
+        console.warn(`Blocking problematic glyph ${glyphId} (character "${character}") to prevent browser crash`);
+      }
+      return this.createEmptySDFData(character, glyphId);
+    }
+
     if (this.enableDebugLogging) {
       console.log(`=== SVG-to-SDF EXTRACTION FOR "${character}" ===`);
       console.log(`Font Type: ${this.fontParser.fontType}`);
       console.log(`Glyph ID: ${glyphId}`);
     }
 
+    // Apply variable font settings if provided
+    if (options.variable && this.fontParser.data.isVariable) {
+      this.fontParser.setVariation(options.variable);
+      if (this.enableDebugLogging) {
+        console.log(`Applied font variation:`, options.variable);
+        console.log(`Current variation:`, this.fontParser.getVariation());
+      }
+    }
+
     // Get SVG path from font parser - use font-type-specific Y-flip
     // TrueType: needs flipY: true (native Y-up → SVG Y-down)
     // CFF: needs flipY: false (native Y-down → SVG Y-down, no flip)
     const flipY = this.fontParser.fontType === "truetype";
-    const svgPath = this.fontParser.glyphToSVGPath(character, {
-      scale: 1,
-      flipY: flipY,
-      offsetX: 0,
-      offsetY: 0,
-    });
+    
+    let svgPath;
+    try {
+      svgPath = this.fontParser.glyphToSVGPath(character, {
+        scale: 1,
+        flipY: flipY,
+        offsetX: 0,
+        offsetY: 0,
+      });
+    } catch (svgError) {
+      if (svgError.message.includes('stack') || svgError.message.includes('Maximum call stack')) {
+        if (this.enableDebugLogging) {
+          console.log(`Stack overflow in SVG generation for "${character}", returning empty`);
+        }
+        return this.createEmptySDFData(character, glyphId);
+      }
+      throw svgError; // Re-throw other errors
+    }
 
     if (this.enableDebugLogging) {
       console.log(
@@ -82,16 +112,42 @@ class FontSDFExtension {
       );
     }
 
-    // Format-specific extraction - each format handled completely separately
+    // ROBUST EXTRACTION STRATEGY: Try direct bezier first, fallback to SVG
     let contours = [];
 
-    // UNIFIED APPROACH: All font types use the same SVG-based extraction
-    // This ensures consistent coordinate systems between SVG overlay and SDF rendering
-    contours = this.parseSVGPath(svgPath);
+    try {
+      // First attempt: Direct bezier extraction (most accurate)
+      // Apply variable font settings before direct extraction
+      if (options.variable && this.fontParser.data.isVariable) {
+        this.fontParser.setVariation(options.variable);
+        if (this.enableDebugLogging) {
+          console.log(`Applied variation for direct extraction:`, options.variable);
+        }
+      }
+      
+      contours = this.extractFromDirectGlyph(character);
+      
+      if (this.enableDebugLogging) {
+        console.log(`Direct bezier extraction: ${contours.length} contours`);
+      }
+      
+      // If direct extraction fails or returns empty, fall back to SVG
+      if (contours.length === 0) {
+        if (this.enableDebugLogging) {
+          console.log('Direct extraction returned no contours, falling back to SVG');
+        }
+        contours = this.parseSVGPath(svgPath);
+      }
+    } catch (directError) {
+      if (this.enableDebugLogging) {
+        console.log(`Direct extraction failed: ${directError.message}, using SVG fallback`);
+      }
+      contours = this.parseSVGPath(svgPath);
+    }
 
     if (this.enableDebugLogging) {
       console.log(
-        `${this.fontParser.fontType.toUpperCase()}: using unified SVG parsing, got ${
+        `${this.fontParser.fontType.toUpperCase()}: final extraction result: ${
           contours.length
         } contours`
       );
@@ -100,8 +156,14 @@ class FontSDFExtension {
     // Calculate bounds from the parsed contours
     const bounds = this.calculateBounds(contours);
 
+    // Filter out tiny artifacts before hole detection
+    const filteredContours = this.filterArtifacts(contours);
+    
+    // Apply proper hole detection for nested contours
+    const contoursWithCorrectWinding = this.detectHoles(filteredContours);
+
     const sdfData = {
-      contours: contours.slice(0, this.maxContours), // Limit contours
+      contours: contoursWithCorrectWinding.slice(0, this.maxContours), // Limit contours
       bounds: bounds,
       character: character,
       glyphId: glyphId,
@@ -132,7 +194,19 @@ class FontSDFExtension {
       );
     }
 
-    const glyph = this.fontParser.parseGlyph(glyphId);
+    // Stack overflow protection for problematic glyphs
+    let glyph;
+    try {
+      glyph = this.fontParser.parseGlyph(glyphId);
+    } catch (error) {
+      if (error.message.includes('stack') || error.message.includes('Maximum call stack')) {
+        if (this.enableDebugLogging) {
+          console.log(`Stack overflow detected for glyph ${glyphId}, skipping direct extraction`);
+        }
+        return []; // Return empty array to trigger SVG fallback
+      }
+      throw error; // Re-throw other errors
+    }
 
     if (!glyph) {
       if (this.enableDebugLogging) {
@@ -177,7 +251,9 @@ class FontSDFExtension {
         );
       }
 
-      const segments = this.convertGlyphContourToSegments(contour);
+      // Apply Y-flip for TrueType fonts to match SVG coordinate system
+      const applyYFlip = this.fontParser.fontType === "truetype";
+      const segments = this.convertGlyphContourToSegments(contour, applyYFlip);
       if (segments.length > 0) {
         const windingOrder = this.calculateWindingOrder(segments);
         sdfContours.push({
@@ -209,13 +285,21 @@ class FontSDFExtension {
   /**
    * Convert a glyph contour (array of points) to bezier segments (using old renderer logic)
    */
-  convertGlyphContourToSegments(contour) {
+  convertGlyphContourToSegments(contour, applyYFlip = false) {
     const segments = [];
     const points = [...contour];
 
     if (points.length === 0) {
       return segments;
     }
+
+    // Helper function to transform coordinates based on font type
+    const transformPoint = (point) => {
+      if (applyYFlip) {
+        return { x: point.x, y: -point.y, onCurve: point.onCurve };
+      }
+      return point;
+    };
 
     // Find the first on-curve point to start from
     let startIndex = 0;
@@ -232,7 +316,7 @@ class FontSDFExtension {
       ...points.slice(0, startIndex),
     ];
 
-    let lastOnCurvePoint = rotatedPoints[0];
+    let lastOnCurvePoint = transformPoint(rotatedPoints[0]);
 
     // Process all points in the contour, including the closing segment
     for (let i = 0; i < rotatedPoints.length; i++) {
@@ -246,8 +330,8 @@ class FontSDFExtension {
         break;
       }
 
-      const current = rotatedPoints[i];
-      const next = rotatedPoints[(i + 1) % rotatedPoints.length];
+      const current = transformPoint(rotatedPoints[i]);
+      const next = transformPoint(rotatedPoints[(i + 1) % rotatedPoints.length]);
 
       if (current.cubic) {
         // Cubic bezier - convert to quadratic
@@ -685,7 +769,309 @@ class FontSDFExtension {
     }
 
     // Return 1 for counter-clockwise (outer), -1 for clockwise (inner)
-    return area < 0 ? 1 : -1;
+    // Fixed: positive area = counter-clockwise = outer shape
+    return area > 0 ? 1 : -1;
+  }
+
+  /**
+   * Filter out tiny artifacts and noise contours
+   */
+  filterArtifacts(contours) {
+    if (contours.length <= 1) {
+      return contours; // Don't filter if we only have one contour
+    }
+    
+    const filteredContours = [];
+    
+    for (const contour of contours) {
+      const bounds = this.calculateBounds([contour]);
+      const area = Math.abs(this.calculateSignedArea(contour.segments));
+      
+      // Filter criteria for artifacts
+      const isTinyArea = area < 500; // Very small area (likely hinting artifacts)
+      const isTinyDimension = bounds.width < 15 || bounds.height < 15; // Very small dimensions
+      const isNearSquareArtifact = (
+        bounds.width < 20 && bounds.height < 20 && 
+        Math.abs(bounds.width - bounds.height) < 5 && 
+        contour.segments.length <= 4
+      ); // Small square artifacts from pixel hinting
+      
+      // Keep contour unless it's clearly an artifact
+      if (!(isTinyArea && isTinyDimension) && !isNearSquareArtifact) {
+        filteredContours.push(contour);
+      } else if (this.enableDebugLogging) {
+        console.log(`Filtered artifact: ${bounds.width.toFixed(1)}x${bounds.height.toFixed(1)}, area: ${area.toFixed(1)}, segments: ${contour.segments.length}`);
+      }
+    }
+    
+    if (this.enableDebugLogging && filteredContours.length !== contours.length) {
+      console.log(`Filtered ${contours.length - filteredContours.length} artifacts, ${filteredContours.length} contours remaining`);
+    }
+    
+    return filteredContours;
+  }
+
+  /**
+   * Detect holes by testing containment and applying proper winding orders
+   * Enhanced to distinguish between actual holes and crossbars/separate shapes
+   * Includes fixes for variable font cast artifacts
+   */
+  detectHoles(contours) {
+    if (contours.length <= 1) {
+      // Single contour is always outer
+      return contours.map(contour => ({
+        ...contour,
+        windingOrder: 1
+      }));
+    }
+
+    // Calculate areas, bounds, and geometric properties for each contour
+    const contourData = contours.map((contour, index) => {
+      const area = this.calculateSignedArea(contour.segments);
+      const bounds = this.calculateBounds([contour]);
+      const aspectRatio = bounds.height > 0 ? bounds.width / bounds.height : 1;
+      
+      return {
+        index,
+        contour,
+        area: Math.abs(area),
+        signedArea: area,
+        bounds,
+        aspectRatio,
+        isCrossbar: this.isCrossbarShape(bounds, aspectRatio),
+        isVariableFontArtifact: this.isVariableFontCastArtifact(contour, bounds, aspectRatio),
+        isHole: false
+      };
+    });
+
+    // Sort by area (largest first)
+    contourData.sort((a, b) => b.area - a.area);
+
+    // The largest contour is always outer
+    contourData[0].isHole = false;
+
+    // For each smaller contour, determine if it's a hole or outer shape
+    for (let i = 1; i < contourData.length; i++) {
+      const current = contourData[i];
+      let isHole = false;
+
+      // Check if this looks like a crossbar - if so, treat as outer shape
+      if (current.isCrossbar) {
+        isHole = false;
+        if (this.enableDebugLogging) {
+          console.log(`Contour ${current.index}: detected as crossbar (aspect ratio: ${current.aspectRatio.toFixed(2)}) - treating as outer shape`);
+        }
+      } else if (current.isVariableFontArtifact) {
+        // Variable font cast artifacts: contours with wrong winding order
+        isHole = false;
+        if (this.enableDebugLogging) {
+          console.log(`Contour ${current.index}: detected as variable font cast artifact - correcting to outer shape`);
+        }
+      } else {
+        // Use containment logic for non-crossbar contours
+        for (let j = 0; j < i; j++) {
+          const larger = contourData[j];
+          if (this.isContourInside(current, larger)) {
+            // If the larger contour is an outer shape, this is a hole
+            // If the larger contour is a hole, this becomes an outer shape again
+            isHole = !larger.isHole;
+            if (this.enableDebugLogging) {
+              console.log(`Contour ${current.index}: inside contour ${larger.index} (${larger.isHole ? 'hole' : 'outer'}) - marking as ${isHole ? 'hole' : 'outer'}`);
+            }
+            break;
+          }
+        }
+      }
+
+      current.isHole = isHole;
+    }
+
+    // Apply correct winding orders and return
+    const finalContours = contourData
+      .sort((a, b) => a.index - b.index) // Restore original order
+      .map(data => ({
+        ...data.contour,
+        windingOrder: data.isHole ? -1 : 1
+      }));
+
+    // Apply precision cleanup for better SDF accuracy
+    return this.applyPrecisionCleanup(finalContours);
+  }
+
+  /**
+   * Detect if a contour looks like a crossbar based on geometric properties
+   */
+  isCrossbarShape(bounds, aspectRatio) {
+    // Crossbars are characterized by:
+    // 1. Extremely wide and thin (much more extreme than regular holes)
+    // 2. Reasonable minimum dimensions
+    // 3. Not too large (actual character holes can be big)
+    const isVeryWideAndThin = aspectRatio > 8.0; // Width > 8x height (much more conservative)
+    const hasReasonableSize = bounds.width > 50 && bounds.height > 5; // Larger minimum size
+    const notTooLarge = bounds.width < 500 && bounds.height < 100; // Prevent large holes being crossbars
+    
+    // Additional check: crossbars are typically horizontal rectangles
+    const isHorizontalRectangle = bounds.width > bounds.height * 6;
+    
+    return isVeryWideAndThin && hasReasonableSize && notTooLarge && isHorizontalRectangle;
+  }
+
+  /**
+   * Detect variable font cast artifacts - contours that should be outer shapes
+   * but have incorrect negative winding order from variable font generation issues
+   */
+  isVariableFontCastArtifact(contour, bounds, aspectRatio) {
+    // Check if this contour has negative winding order (marked as hole)
+    if (contour.windingOrder >= 0) {
+      return false; // Already positive winding, not an artifact
+    }
+
+    // Improved detection: only flag artifacts for very specific patterns
+    
+    // Pattern 1: Very large area "holes" that are clearly substantial shapes
+    const hasVeryLargeArea = bounds.width * bounds.height > 250000;
+    
+    // Pattern 2: Diagonal-like shapes (like K arms) with substantial size
+    const isDiagonalShape = aspectRatio > 0.6 && aspectRatio < 1.8 && 
+                           bounds.width > 500 && bounds.height > 500;
+    
+    // Pattern 3: Wide crossbar-like shapes marked as holes (suspicious)
+    const isCrossbarMarkedAsHole = aspectRatio > 6.0 && bounds.height < 150 && 
+                                   bounds.width > 300;
+    
+    // Pattern 4: Large rectangular shapes that should obviously be outer
+    const isLargeRectangularShape = (aspectRatio > 2.5 || aspectRatio < 0.4) && 
+                                   bounds.width > 400 && bounds.height > 400;
+    
+    // Only flag as artifact if it matches very specific suspicious patterns
+    return hasVeryLargeArea || isDiagonalShape || isCrossbarMarkedAsHole || isLargeRectangularShape;
+  }
+
+  /**
+   * Apply precision cleanup to contours for better SDF accuracy
+   * Addresses micro-gaps and floating-point precision issues
+   */
+  applyPrecisionCleanup(contours) {
+    return contours.map(contour => ({
+      ...contour,
+      segments: this.cleanupSegmentPrecision(contour.segments)
+    }));
+  }
+
+  /**
+   * Clean up segment precision to prevent SDF leaks
+   */
+  cleanupSegmentPrecision(segments) {
+    const cleaned = [];
+    const tolerance = 0.001; // Very tight tolerance for precision
+
+    for (let i = 0; i < segments.length; i++) {
+      const current = segments[i];
+      const next = segments[(i + 1) % segments.length];
+      
+      // Create a copy of the current segment
+      const cleanedSegment = {
+        ...current,
+        start: { ...current.start },
+        end: { ...current.end },
+        control: current.control ? { ...current.control } : undefined
+      };
+
+      // Snap endpoint to next segment's start point if very close
+      const endToNextStartDist = Math.sqrt(
+        Math.pow(current.end.x - next.start.x, 2) + 
+        Math.pow(current.end.y - next.start.y, 2)
+      );
+
+      if (endToNextStartDist < tolerance) {
+        // Snap to the midpoint for best precision
+        const midX = (current.end.x + next.start.x) / 2;
+        const midY = (current.end.y + next.start.y) / 2;
+        
+        cleanedSegment.end.x = midX;
+        cleanedSegment.end.y = midY;
+        
+        // Update next segment's start point to match (will be handled in next iteration)
+        if (i < segments.length - 1) {
+          next.start.x = midX;
+          next.start.y = midY;
+        }
+      }
+
+      // Round coordinates to prevent floating-point precision drift
+      cleanedSegment.start.x = Math.round(cleanedSegment.start.x * 1000) / 1000;
+      cleanedSegment.start.y = Math.round(cleanedSegment.start.y * 1000) / 1000;
+      cleanedSegment.end.x = Math.round(cleanedSegment.end.x * 1000) / 1000;
+      cleanedSegment.end.y = Math.round(cleanedSegment.end.y * 1000) / 1000;
+
+      if (cleanedSegment.control) {
+        cleanedSegment.control.x = Math.round(cleanedSegment.control.x * 1000) / 1000;
+        cleanedSegment.control.y = Math.round(cleanedSegment.control.y * 1000) / 1000;
+      }
+
+      // Skip segments that are too small (degenerate)
+      const segmentLength = Math.sqrt(
+        Math.pow(cleanedSegment.end.x - cleanedSegment.start.x, 2) + 
+        Math.pow(cleanedSegment.end.y - cleanedSegment.start.y, 2)
+      );
+
+      if (segmentLength >= 0.1) { // Minimum segment length
+        cleaned.push(cleanedSegment);
+      }
+    }
+
+    return cleaned;
+  }
+
+  /**
+   * Calculate signed area for hole detection
+   */
+  calculateSignedArea(segments) {
+    let area = 0;
+    for (const segment of segments) {
+      area += (segment.end.x - segment.start.x) * (segment.end.y + segment.start.y);
+    }
+    return area / 2;
+  }
+
+  /**
+   * Test if one contour is inside another
+   */
+  isContourInside(innerContour, outerContour) {
+    // Simple test: check if the first point of inner contour is inside outer contour bounds
+    if (innerContour.contour.segments.length === 0) return false;
+    
+    const testPoint = innerContour.contour.segments[0].start;
+    
+    // First check bounding box
+    if (testPoint.x < outerContour.bounds.minX || testPoint.x > outerContour.bounds.maxX ||
+        testPoint.y < outerContour.bounds.minY || testPoint.y > outerContour.bounds.maxY) {
+      return false;
+    }
+
+    // Use a simple point-in-polygon test
+    return this.pointInPolygon(testPoint, outerContour.contour.segments);
+  }
+
+  /**
+   * Point-in-polygon test using ray casting
+   */
+  pointInPolygon(point, segments) {
+    let inside = false;
+    
+    for (const segment of segments) {
+      const x1 = segment.start.x;
+      const y1 = segment.start.y;
+      const x2 = segment.end.x;
+      const y2 = segment.end.y;
+      
+      if (((y1 > point.y) !== (y2 > point.y)) &&
+          (point.x < (x2 - x1) * (point.y - y1) / (y2 - y1) + x1)) {
+        inside = !inside;
+      }
+    }
+    
+    return inside;
   }
 
   /**

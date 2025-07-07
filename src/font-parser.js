@@ -880,16 +880,142 @@ class FontParser {
     return baseMetrics;
   }
 
+  // Detect corrupted glyphs to prevent crashes
+  isGlyphCorrupted(glyphId, visited = new Set()) {
+    if (!this.glyphOffsets || glyphId >= this.glyphOffsets.length - 1) {
+      return false; // Not our problem if glyph doesn't exist
+    }
+
+    // Check for circular references
+    if (visited.has(glyphId)) {
+      return true; // Circular reference detected
+    }
+
+    // General circular reference detection with depth limiting
+    if (visited.size > 10) {
+      return true; // Too deep in component dependency chain - likely circular
+    }
+
+    const offset = this.glyphOffsets[glyphId];
+    const nextOffset = this.glyphOffsets[glyphId + 1];
+    
+    if (offset === nextOffset) {
+      return false; // Empty glyphs are not corrupted
+    }
+
+    try {
+      // Save current position
+      const currentOffset = this.offset;
+      
+      // Read glyph header
+      this.seek(this.tables.glyf.offset + offset);
+      const numberOfContours = this.readInt16();
+      
+      // Skip bounds
+      this.readInt16(); // xMin
+      this.readInt16(); // yMin 
+      this.readInt16(); // xMax
+      this.readInt16(); // yMax
+
+      if (numberOfContours < 0) {
+        // This is a composite glyph - check for corruption
+        visited.add(glyphId);
+        
+        let flags;
+        let componentCount = 0;
+        const maxSafeComponents = 10;
+
+        do {
+          if (componentCount >= maxSafeComponents) {
+            // Too many components suggests corruption
+            this.offset = currentOffset; // Restore position
+            return true;
+          }
+
+          flags = this.readUint16();
+          const componentGlyphIndex = this.readUint16();
+
+          // Check for invalid component references
+          if (componentGlyphIndex >= this.glyphOffsets.length - 1) {
+            this.offset = currentOffset; // Restore position
+            return true; // Invalid component reference
+          }
+
+          // Check for self-reference
+          if (componentGlyphIndex === glyphId) {
+            this.offset = currentOffset; // Restore position
+            return true; // Self-reference causes infinite recursion
+          }
+
+          // Recursively check component for corruption (with circular reference detection)
+          if (this.isGlyphCorrupted(componentGlyphIndex, new Set(visited))) {
+            this.offset = currentOffset; // Restore position
+            return true; // Component is corrupted
+          }
+
+          // Skip component arguments and transformation data
+          if (flags & 0x0001) {
+            this.readInt16(); // arg1
+            this.readInt16(); // arg2
+          } else {
+            this.readInt8(); // arg1
+            this.readInt8(); // arg2
+          }
+
+          if (flags & 0x0008) {
+            this.readF2Dot14(); // uniform scale
+          } else if (flags & 0x0040) {
+            this.readF2Dot14(); // x scale
+            this.readF2Dot14(); // y scale
+          } else if (flags & 0x0080) {
+            this.readF2Dot14(); // xx
+            this.readF2Dot14(); // xy
+            this.readF2Dot14(); // yx
+            this.readF2Dot14(); // yy
+          }
+
+          componentCount++;
+
+        } while (flags & 0x0020); // MORE_COMPONENTS flag
+
+      }
+
+      // Restore position
+      this.offset = currentOffset;
+      return false; // No corruption detected
+
+    } catch (error) {
+      // If we can't read the glyph structure, consider it corrupted
+      return true;
+    }
+  }
+
   // Main glyph parsing with caching and variation support
-  parseGlyph(glyphId) {
+  parseGlyph(glyphId, recursionStack = new Set()) {
+    // Check for corrupted glyphs that could cause crashes
+    if (this.isGlyphCorrupted(glyphId)) {
+      console.warn(`Detected corrupted glyph ${glyphId}, returning empty glyph`);
+      return { contours: [], instructions: [], xMin: 0, yMin: 0, xMax: 0, yMax: 0 };
+    }
+
     if (this.glyphCache.has(glyphId)) return this.glyphCache.get(glyphId);
+
+    // Prevent infinite recursion from self-referencing composite glyphs
+    if (recursionStack.has(glyphId)) {
+      console.warn(`Infinite recursion detected for glyph ${glyphId}, returning empty glyph`);
+      return { contours: [], instructions: [], xMin: 0, yMin: 0, xMax: 0, yMax: 0 };
+    }
+
+    recursionStack.add(glyphId);
 
     let baseGlyph;
     if (this.fontType === "cff") {
       baseGlyph = this.parseCFFGlyph(glyphId);
     } else {
-      baseGlyph = this.parseTrueTypeGlyph(glyphId);
+      baseGlyph = this.parseTrueTypeGlyph(glyphId, recursionStack);
     }
+
+    recursionStack.delete(glyphId);
 
     const glyph = this.applyVariationToGlyph(baseGlyph, glyphId);
     if (glyph) this.glyphCache.set(glyphId, glyph);
@@ -1678,13 +1804,22 @@ class FontParser {
   }
 
   // TrueType glyph parsing (simplified)
-  parseTrueTypeGlyph(glyphId) {
+  parseTrueTypeGlyph(glyphId, recursionStack = new Set(), componentPath = []) {
     if (!this.glyphOffsets || glyphId >= this.glyphOffsets.length - 1)
       return null;
 
-    const offset = this.glyphOffsets[glyphId];
-    const nextOffset = this.glyphOffsets[glyphId + 1];
-    if (offset === nextOffset)
+    // Only check for circular reference if this is a component call (not top-level)
+    // Top-level calls are already managed by getGlyph function
+    const isComponentCall = componentPath.length > 0;
+    
+    if (isComponentCall && recursionStack.has(glyphId)) {
+      console.warn(`Circular reference detected in TrueType glyph ${glyphId}, path: ${[...componentPath, glyphId].join(' → ')}`);
+      
+      // Debug: check if this affects our target glyph
+      if (glyphId === 689 || componentPath.includes(689)) {
+        console.error(`🚨 'i' character blocked by circular reference!`);
+      }
+      
       return {
         contours: [],
         instructions: [],
@@ -1693,6 +1828,28 @@ class FontParser {
         xMax: 0,
         yMax: 0,
       };
+    }
+
+    // Add current glyph to recursion stack only for component calls
+    if (isComponentCall) {
+      recursionStack.add(glyphId);
+    }
+
+    const offset = this.glyphOffsets[glyphId];
+    const nextOffset = this.glyphOffsets[glyphId + 1];
+    if (offset === nextOffset) {
+      if (isComponentCall) {
+        recursionStack.delete(glyphId);
+      }
+      return {
+        contours: [],
+        instructions: [],
+        xMin: 0,
+        yMin: 0,
+        xMax: 0,
+        yMax: 0,
+      };
+    }
 
     this.seek(this.tables.glyf.offset + offset);
     const numberOfContours = this.readInt16();
@@ -1701,11 +1858,19 @@ class FontParser {
     const xMax = this.readInt16();
     const yMax = this.readInt16();
 
+    let result;
     if (numberOfContours >= 0) {
-      return this.parseSimpleGlyph(numberOfContours, xMin, yMin, xMax, yMax);
+      result = this.parseSimpleGlyph(numberOfContours, xMin, yMin, xMax, yMax);
     } else {
-      return this.parseCompositeGlyph(numberOfContours, xMin, yMin, xMax, yMax);
+      result = this.parseCompositeGlyph(numberOfContours, xMin, yMin, xMax, yMax, recursionStack, [...componentPath, glyphId]);
     }
+
+    // Remove current glyph from recursion stack only for component calls
+    if (isComponentCall) {
+      recursionStack.delete(glyphId);
+    }
+
+    return result;
   }
 
   parseSimpleGlyph(numberOfContours, xMin, yMin, xMax, yMax) {
@@ -1791,13 +1956,60 @@ class FontParser {
     return { contours, instructions: [], xMin, yMin, xMax, yMax };
   }
 
-  parseCompositeGlyph(numberOfContours, xMin, yMin, xMax, yMax) {
+  parseCompositeGlyph(numberOfContours, xMin, yMin, xMax, yMax, recursionStack = new Set(), componentPath = []) {
     const allContours = [];
     let flags;
+    let componentCount = 0;
+    const maxComponents = 100; // Prevent infinite component loops (increased from 20)
+    
+    
+    // Track the full component dependency path for better circular reference detection
+    // The componentPath already contains the current glyph, no need to add it again
+    const fullPath = componentPath;
 
     do {
+      // Safety check for too many components
+      if (componentCount >= maxComponents) {
+        console.warn(`Composite glyph has too many components (${componentCount}), stopping to prevent infinite loop`);
+        break;
+      }
+
       flags = this.readUint16();
       const glyphIndex = this.readUint16();
+      
+      // CRITICAL: Validate component glyph index
+      // Skip invalid glyph indices, including 0xFFFF (65535) which is used as "no glyph" marker
+      if (glyphIndex >= this.glyphOffsets.length - 1 || glyphIndex === 65535 || glyphIndex < 0) {
+        if (glyphIndex === 65535) {
+          console.warn(`Skipping null glyph marker (65535) in composite glyph`);
+        } else {
+          console.warn(`Invalid component glyph index ${glyphIndex} (max: ${this.glyphOffsets.length - 1}), skipping component`);
+        }
+        // Skip the rest of this component's data
+        if (flags & 0x0001) {
+          this.readInt16(); // arg1
+          this.readInt16(); // arg2
+        } else {
+          this.readInt8(); // arg1
+          this.readInt8(); // arg2
+        }
+        
+        // Skip transformation data
+        if (flags & 0x0008) {
+          this.readF2Dot14();
+        } else if (flags & 0x0040) {
+          this.readF2Dot14();
+          this.readF2Dot14();
+        } else if (flags & 0x0080) {
+          this.readF2Dot14();
+          this.readF2Dot14();
+          this.readF2Dot14();
+          this.readF2Dot14();
+        }
+        
+        componentCount++;
+        continue;
+      }
 
       let arg1, arg2;
       if (flags & 0x0001) {
@@ -1827,7 +2039,8 @@ class FontParser {
         m11 = this.readF2Dot14();
       }
 
-      const baseGlyph = this.parseTrueTypeGlyph(glyphIndex);
+      // Pass recursion stack and component path to prevent infinite loops
+      const baseGlyph = this.parseTrueTypeGlyph(glyphIndex, recursionStack, fullPath);
       if (baseGlyph?.contours?.length) {
         for (const contour of baseGlyph.contours) {
           const transformed = contour.map((pt) => ({
@@ -1838,6 +2051,8 @@ class FontParser {
           allContours.push(transformed);
         }
       }
+      
+      componentCount++;
     } while (flags & 0x0020);
 
     if (flags & 0x0100) {
