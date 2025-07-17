@@ -17,7 +17,7 @@
  * @version 2.0.0
  */
 
-class FontParser {
+export default class FontParser {
   constructor() {
     // Font data
     this.buffer = null;
@@ -44,6 +44,7 @@ class FontParser {
     this.glyphCache = new Map();
     this.indexToLocFormat = 0;
     this.glyphOffsets = [];
+    this.glyphParseCache = new Map(); // Cache parsed glyph data
 
     // Variable font data
     this.isVariableFont = false;
@@ -83,6 +84,23 @@ class FontParser {
    * @returns {FontParser} this
    */
   fromBuffer(fontBuffer) {
+    // Check for unsupported formats
+    const view = new DataView(fontBuffer);
+    const signature = view.getUint32(0, false);
+
+    if (signature === 0x774f4632) {
+      // WOFF2
+      throw new Error(
+        "WOFF2 fonts not supported. Please use TTF or OTF fonts."
+      );
+    }
+
+    if (signature === 0x774f4646) {
+      // WOFF
+      throw new Error("WOFF fonts not supported. Please use TTF or OTF fonts.");
+    }
+
+    // Process regular fonts (TTF/OTF)
     this._initializeFont(fontBuffer);
     this._parseFont();
     this._buildMetadata();
@@ -177,6 +195,157 @@ class FontParser {
    */
   getAxes() {
     return this.variationAxes ? [...this.variationAxes] : [];
+  }
+
+  // ============================================================================
+  // CREATIVE CODING UTILITIES
+  // ============================================================================
+
+  /**
+   * Sample points along text paths (perfect for creative coding)
+   * @param {string} text - Text to convert
+   * @param {Object} options - Sampling options
+   * @param {number} options.size - Font size (default: 72)
+   * @param {number} options.density - Sampling density 1-10 (default: 3)
+   * @param {Object} options.variable - Variable font axis values
+   * @returns {Array} Array of point objects with x, y, charIndex
+   */
+  samplePoints(text, options = {}) {
+    const opts = {
+      size: options.size || 72,
+      density: Math.max(1, Math.min(10, options.density || 3)),
+      variable: options.variable || {},
+    };
+
+    const result = this.path(text, opts);
+    const points = [];
+
+    // Parse viewBox
+    const [vbX, vbY, vbWidth, vbHeight] = result.viewBox.split(" ").map(Number);
+    const step = Math.max(1, Math.floor(8 / opts.density));
+
+    result.characters.forEach((char, charIndex) => {
+      const path2D = new Path2D(char.path);
+
+      // Create temporary canvas for path testing
+      const canvas =
+        typeof document !== "undefined"
+          ? document.createElement("canvas")
+          : { getContext: () => ({ isPointInPath: () => false }) };
+      const ctx = canvas.getContext("2d");
+
+      // Sample points within viewbox
+      for (let x = vbX; x < vbX + vbWidth; x += step) {
+        for (let y = vbY; y < vbY + vbHeight; y += step) {
+          if (ctx.isPointInPath(path2D, x, y)) {
+            points.push({
+              x: x,
+              y: y,
+              charIndex: charIndex,
+              char: char.char,
+              advance: char.advance,
+            });
+          }
+        }
+      }
+    });
+
+    return points;
+  }
+
+  /**
+   * Get individual character paths as separate objects
+   * @param {string} text - Text to convert
+   * @param {Object} options - Rendering options
+   * @returns {Array} Array of character path objects
+   */
+  getCharacterPaths(text, options = {}) {
+    const result = this.path(text, options);
+
+    return result.characters.map((char, index) => ({
+      char: char.char,
+      path: char.path,
+      x: char.x,
+      y: char.y,
+      advance: char.advance,
+      index: index,
+      bounds: this._calculatePathBounds(char.path),
+    }));
+  }
+
+  /**
+   * Get text bounds for alignment and positioning
+   * @param {string} text - Text to measure
+   * @param {Object} options - Rendering options
+   * @returns {Object} Bounds object with x, y, width, height
+   */
+  getTextBounds(text, options = {}) {
+    const result = this.path(text, options);
+    const [x, y, width, height] = result.viewBox.split(" ").map(Number);
+
+    return {
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+      textWidth: result.width,
+      textHeight: result.height,
+      baseline: result.baseline,
+      ascender: result.ascender,
+      descender: result.descender,
+    };
+  }
+
+  /**
+   * Create aligned text paths (left, center, right)
+   * @param {string} text - Text to convert
+   * @param {Object} options - Rendering options
+   * @param {string} options.align - Alignment: 'left', 'center', 'right' (default: 'left')
+   * @param {number} options.containerWidth - Container width for alignment
+   * @returns {Object} SVG data with aligned paths
+   */
+  alignedPath(text, options = {}) {
+    const opts = { ...options };
+    const align = opts.align || "left";
+    const containerWidth = opts.containerWidth || 800;
+
+    // Remove align and containerWidth from font options
+    delete opts.align;
+    delete opts.containerWidth;
+
+    const result = this.path(text, opts);
+    const bounds = this.getTextBounds(text, opts);
+
+    let offsetX = 0;
+    switch (align) {
+      case "center":
+        offsetX = (containerWidth - bounds.textWidth) / 2;
+        break;
+      case "right":
+        offsetX = containerWidth - bounds.textWidth;
+        break;
+      default: // 'left'
+        offsetX = 0;
+    }
+
+    // Transform paths if offset needed
+    if (offsetX !== 0) {
+      const transformedPaths = result.characters.map((char) => ({
+        ...char,
+        path: this._translatePath(char.path, offsetX, 0),
+        x: char.x + offsetX,
+      }));
+
+      return {
+        ...result,
+        characters: transformedPaths,
+        paths: transformedPaths.map((p) => `<path d="${p.path}"/>`).join("\n"),
+        alignment: align,
+        offsetX: offsetX,
+      };
+    }
+
+    return { ...result, alignment: align, offsetX: 0 };
   }
 
   // ============================================================================
@@ -346,6 +515,84 @@ class FontParser {
       return this.readUint16();
     }
     return 0;
+  }
+
+  /**
+   * Calculate bounds of a path string
+   * @private
+   */
+  _calculatePathBounds(pathString) {
+    // Simple bounds calculation by parsing path coordinates
+    const coords = pathString.match(/-?\d+\.?\d*/g);
+    if (!coords || coords.length < 2) {
+      return { x: 0, y: 0, width: 0, height: 0 };
+    }
+
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+
+    for (let i = 0; i < coords.length; i += 2) {
+      const x = parseFloat(coords[i]);
+      const y = parseFloat(coords[i + 1]);
+      if (!isNaN(x) && !isNaN(y)) {
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y);
+        maxY = Math.max(maxY, y);
+      }
+    }
+
+    return {
+      x: isFinite(minX) ? minX : 0,
+      y: isFinite(minY) ? minY : 0,
+      width: isFinite(maxX) && isFinite(minX) ? maxX - minX : 0,
+      height: isFinite(maxY) && isFinite(minY) ? maxY - minY : 0,
+    };
+  }
+
+  /**
+   * Translate a path by offsetX and offsetY
+   * @private
+   */
+  _translatePath(pathString, offsetX, offsetY) {
+    if (offsetX === 0 && offsetY === 0) return pathString;
+
+    // Simple path translation by adjusting coordinates
+    return pathString.replace(
+      /(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/g,
+      (match, x, y) => {
+        const newX = parseFloat(x) + offsetX;
+        const newY = parseFloat(y) + offsetY;
+        return `${newX} ${newY}`;
+      }
+    );
+  }
+
+  // Apply affine transform to an SVG path string (simple regex replacement)
+  _applyMatrixToPath(pathString, part, scale, flipY, offsetX, offsetY) {
+    if (!pathString) return "";
+    const { a: m00, b: m10, c: m01, d: m11, tx: dx, ty: dy } = part.m;
+    return pathString.replace(
+      /(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/g,
+      (match, xs, ys) => {
+        // current coords are already scaled; first convert back to font units
+        const xSvg = parseFloat(xs) - offsetX;
+        const ySvg = parseFloat(ys) - offsetY;
+        const xFont = xSvg / scale;
+        const yFont = flipY ? -ySvg / scale : ySvg / scale;
+
+        // apply component matrix in font units
+        const nxFont = xFont * m00 + yFont * m01 + dx;
+        const nyFont = xFont * m10 + yFont * m11 + dy;
+
+        // convert back to svg coords
+        const nxSvg = nxFont * scale + offsetX;
+        const nySvg = (flipY ? -nyFont : nyFont) * scale + offsetY;
+        return `${nxSvg} ${nySvg}`;
+      }
+    );
   }
 
   // ============================================================================
@@ -575,18 +822,39 @@ class FontParser {
     this.offset += 2; // Skip version
     const numTables = this.readUint16();
 
-    // Find Unicode subtable (prefer platform 3 encoding 1)
+    // Find best cmap subtable - using Typr.js platform/encoding preference order
     let subtableOffset = null;
+    let bestPlatformEncoding = null;
+    const cmapSubtables = [];
+
     for (let i = 0; i < numTables; i++) {
       const platformID = this.readUint16();
       const encodingID = this.readUint16();
       const offset = this.readUint32();
+      cmapSubtables.push({ platformID, encodingID, offset });
+    }
 
-      if (
-        (platformID === 3 && encodingID === 1) ||
-        (platformID === 0 && encodingID === 3)
-      ) {
-        subtableOffset = this.tables.cmap.offset + offset;
+    // Platform/encoding preference order from Typr.js
+    const preferences = [
+      { platform: 3, encoding: 10 }, // Windows Unicode full
+      { platform: 0, encoding: 4 }, // Unicode 2.0+
+      { platform: 3, encoding: 1 }, // Windows Unicode BMP
+      { platform: 1, encoding: 0 }, // Mac Roman
+      { platform: 0, encoding: 3 }, // Unicode default
+      { platform: 0, encoding: 1 }, // Unicode 1.1
+      { platform: 3, encoding: 0 }, // Windows Symbol
+      { platform: 3, encoding: 5 }, // Windows Korean
+    ];
+
+    // Find the best subtable according to preference order
+    for (const pref of preferences) {
+      const subtable = cmapSubtables.find(
+        (st) =>
+          st.platformID === pref.platform && st.encodingID === pref.encoding
+      );
+      if (subtable) {
+        subtableOffset = this.tables.cmap.offset + subtable.offset;
+        bestPlatformEncoding = `p${pref.platform}e${pref.encoding}`;
         break;
       }
     }
@@ -610,11 +878,15 @@ class FontParser {
       case 4:
         this._parseCmapFormat4();
         break;
+      case 6:
+        this._parseCmapFormat6();
+        break;
       case 12:
         this._parseCmapFormat12();
         break;
       default:
-        throw new Error(`Unsupported cmap format: ${format}`);
+        console.warn(`Unsupported cmap format: ${format}`);
+        break;
     }
   }
 
@@ -664,11 +936,30 @@ class FontParser {
   }
 
   /**
+   * Parse cmap format 6 (Trimmed table mapping)
+   * @private
+   */
+  _parseCmapFormat6() {
+    this.offset += 4; // Skip length, language
+    const firstCode = this.readUint16();
+    const entryCount = this.readUint16();
+
+    for (let i = 0; i < entryCount; i++) {
+      const glyphId = this.readUint16();
+      if (glyphId !== 0) {
+        this.charToGlyph.set(firstCode + i, glyphId);
+      }
+    }
+  }
+
+  /**
    * Parse cmap format 12 (Full Unicode)
    * @private
    */
   _parseCmapFormat12() {
-    this.offset += 8; // Skip reserved, length, language
+    this.offset += 2; // Skip reserved
+    this.offset += 4; // Skip length
+    this.offset += 4; // Skip language
     const numGroups = this.readUint32();
 
     for (let i = 0; i < numGroups; i++) {
@@ -882,8 +1173,14 @@ class FontParser {
 
   // Main glyph parsing with caching and variation support
   parseGlyph(glyphId) {
-    if (this.glyphCache.has(glyphId)) return this.glyphCache.get(glyphId);
+    console.log(`parseGlyph(${glyphId}) called`);
 
+    if (this.glyphCache.has(glyphId)) {
+      console.log(`  Cache hit for glyph ${glyphId}`);
+      return this.glyphCache.get(glyphId);
+    }
+
+    console.log(`  Cache miss for glyph ${glyphId}, parsing...`);
     let baseGlyph;
     if (this.fontType === "cff") {
       baseGlyph = this.parseCFFGlyph(glyphId);
@@ -892,7 +1189,14 @@ class FontParser {
     }
 
     const glyph = this.applyVariationToGlyph(baseGlyph, glyphId);
-    if (glyph) this.glyphCache.set(glyphId, glyph);
+    if (glyph) {
+      console.log(
+        `  Caching glyph ${glyphId} with ${
+          glyph.contours?.length || 0
+        } contours`
+      );
+      this.glyphCache.set(glyphId, glyph);
+    }
     return glyph;
   }
 
@@ -964,21 +1268,61 @@ class FontParser {
   }
 
   // SVG generation methods
-  glyphToSVGPath(character, options = {}) {
-    const glyphId = this.getGlyphId(character);
+  glyphToSVGPath(character, options = {}, _visited = new Set()) {
+    const glyphId =
+      typeof character === "number" ? character : this.getGlyphId(character);
+
+    // Prevent infinite recursion for malformed fonts
+    if (_visited.has(glyphId)) return "";
+    _visited.add(glyphId);
+
     const glyph = this.parseGlyph(glyphId);
-    if (!glyph?.contours?.length) return "";
+    if (!glyph) return "";
 
-    const scale = options.scale || 1;
-    const flipY = options.flipY !== false;
-    const offsetX = options.offsetX || 0;
-    const offsetY = options.offsetY || 0;
+    // If glyph has direct contours, draw them
+    if (glyph.contours && glyph.contours.length) {
+      const scale = options.scale || 1;
+      const flipY = options.flipY !== false;
+      const offsetX = options.offsetX || 0;
+      const offsetY = options.offsetY || 0;
+      return glyph.contours
+        .map((contour) =>
+          this.contourToSVGPath(contour, scale, flipY, offsetX, offsetY)
+        )
+        .join(" ");
+    }
 
-    return glyph.contours
-      .map((contour) =>
-        this.contourToSVGPath(contour, scale, flipY, offsetX, offsetY)
-      )
-      .join(" ");
+    // Composite glyph: iterate parts
+    if (glyph.parts && glyph.parts.length) {
+      const scale = options.scale || 1;
+      const flipY = options.flipY !== false;
+      const offsetX = options.offsetX || 0;
+      const offsetY = options.offsetY || 0;
+      let combined = "";
+
+      for (const part of glyph.parts) {
+        // Recursively get sub path without flipY to keep in font space
+        const subPath = this.glyphToSVGPath(
+          part.glyphIndex,
+          { ...options, flipY },
+          _visited
+        );
+        if (!subPath) continue;
+
+        combined +=
+          this._applyMatrixToPath(
+            subPath,
+            part,
+            scale,
+            flipY,
+            offsetX,
+            offsetY
+          ) + " ";
+      }
+      return combined.trim();
+    }
+
+    return "";
   }
 
   glyphToSVG(character, options = {}) {
@@ -1013,60 +1357,117 @@ class FontParser {
 </svg>`;
   }
 
-  getGlyphBounds(character, options = {}) {
-    const glyphId = this.getGlyphId(character);
+  getGlyphBounds(character, options = {}, _visited = new Set()) {
+    const glyphId =
+      typeof character === "number" ? character : this.getGlyphId(character);
+    if (_visited.has(glyphId)) return null;
+    _visited.add(glyphId);
+
     const glyph = this.parseGlyph(glyphId);
-    if (!glyph?.contours?.length) return null;
+    if (!glyph) return null;
 
-    const scale = options.scale || 1;
-    const offsetX = options.offsetX || 0;
-    const offsetY = options.offsetY || 0;
-    let minX = Infinity,
-      minY = Infinity,
-      maxX = -Infinity,
-      maxY = -Infinity;
+    // If simple glyph
+    if (glyph.contours && glyph.contours.length) {
+      const scale = options.scale || 1;
+      const offsetX = options.offsetX || 0;
+      const offsetY = options.offsetY || 0;
+      let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
 
-    for (const contour of glyph.contours) {
-      for (const point of contour) {
-        const x = point.x * scale + offsetX;
-        const y =
-          options.flipY !== false
-            ? -point.y * scale + offsetY
-            : point.y * scale + offsetY;
-
-        minX = Math.min(minX, x);
-        minY = Math.min(minY, y);
-        maxX = Math.max(maxX, x);
-        maxY = Math.max(maxY, y);
-
-        if (point.cubic) {
-          const x1 = point.x1 * scale + offsetX;
-          const y1 =
-            options.flipY !== false
-              ? -point.y1 * scale + offsetY
-              : point.y1 * scale + offsetY;
-          const x2 = point.x2 * scale + offsetX;
-          const y2 =
-            options.flipY !== false
-              ? -point.y2 * scale + offsetY
-              : point.y2 * scale + offsetY;
-
-          minX = Math.min(minX, x1, x2);
-          minY = Math.min(minY, y1, y2);
-          maxX = Math.max(maxX, x1, x2);
-          maxY = Math.max(maxY, y1, y2);
+      for (const contour of glyph.contours) {
+        for (const point of contour) {
+          const x = point.x * scale + offsetX;
+          const y =
+            (options.flipY !== false ? -point.y : point.y) * scale + offsetY;
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+          if (point.cubic) {
+            const cx1 = point.x1 * scale + offsetX;
+            const cy1 =
+              (options.flipY !== false ? -point.y1 : point.y1) * scale +
+              offsetY;
+            const cx2 = point.x2 * scale + offsetX;
+            const cy2 =
+              (options.flipY !== false ? -point.y2 : point.y2) * scale +
+              offsetY;
+            minX = Math.min(minX, cx1, cx2);
+            minY = Math.min(minY, cy1, cy2);
+            maxX = Math.max(maxX, cx1, cx2);
+            maxY = Math.max(maxY, cy1, cy2);
+          }
         }
       }
+      return {
+        minX,
+        minY,
+        maxX,
+        maxY,
+        width: maxX - minX,
+        height: maxY - minY,
+      };
     }
 
-    return {
-      minX: isFinite(minX) ? minX : 0,
-      minY: isFinite(minY) ? minY : 0,
-      maxX: isFinite(maxX) ? maxX : 0,
-      maxY: isFinite(maxY) ? maxY : 0,
-      width: isFinite(maxX) && isFinite(minX) ? maxX - minX : 0,
-      height: isFinite(maxY) && isFinite(minY) ? maxY - minY : 0,
-    };
+    // Composite glyph
+    if (glyph.parts && glyph.parts.length) {
+      let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
+      const scale = options.scale || 1;
+      const flipY = options.flipY !== false;
+      const offsetX = options.offsetX || 0;
+      const offsetY = options.offsetY || 0;
+
+      for (const part of glyph.parts) {
+        const subBounds = this.getGlyphBounds(
+          part.glyphIndex,
+          options,
+          _visited
+        );
+        if (!subBounds) continue;
+
+        // Transform the four corners
+        const transformPoint = (x, y) => {
+          const tx = x * part.m.a + y * part.m.c + part.m.tx;
+          const ty = x * part.m.b + y * part.m.d + part.m.ty;
+          return [tx, ty];
+        };
+
+        const corners = [
+          [subBounds.minX, subBounds.minY],
+          [subBounds.minX, subBounds.maxY],
+          [subBounds.maxX, subBounds.minY],
+          [subBounds.maxX, subBounds.maxY],
+        ];
+        for (const [x, y] of corners) {
+          const [nx, ny] = transformPoint(
+            x / scale,
+            flipY ? -y / scale : y / scale
+          );
+          const fx = nx * scale + offsetX;
+          const fy = (flipY ? -ny : ny) * scale + offsetY;
+          minX = Math.min(minX, fx);
+          minY = Math.min(minY, fy);
+          maxX = Math.max(maxX, fx);
+          maxY = Math.max(maxY, fy);
+        }
+      }
+
+      return {
+        minX,
+        minY,
+        maxX,
+        maxY,
+        width: maxX - minX,
+        height: maxY - minY,
+      };
+    }
+
+    return null;
   }
 
   contourToSVGPath(points, scale = 1, flipY = true, offsetX = 0, offsetY = 0) {
@@ -1338,222 +1739,118 @@ class FontParser {
     }
   }
 
-  // Draw CFF CharString using Typr.js-style state-based approach (from working static-font-parser.js)
+  // Draw CFF CharString using iterative approach to prevent stack overflow
   drawCFF(charString, state) {
+    // Use a call stack to handle subroutines iteratively
+    const callStack = [
+      {
+        charString: charString,
+        index: 0,
+      },
+    ];
+
     const { stack, path } = state;
     let { x, y, nStems, haveWidth, width, open } = state;
-    let i = 0;
 
     const nominalWidthX = this.cffData?.privateDict?.nominalWidthX || 0;
 
-    while (i < charString.length) {
-      const b = charString[i];
+    while (callStack.length > 0) {
+      const current = callStack[callStack.length - 1];
+      const charString = current.charString;
+      let i = current.index;
 
-      if (b >= 32) {
-        // Operand
-        const operand = this.readCharStringOperand(charString, i);
-        stack.push(operand.value);
-        i = operand.nextIndex;
-      } else {
-        // Operator
-        let op = b;
-        if (b === 12) {
-          // Two-byte operator
-          i++;
-          op = (b << 8) | charString[i];
-        }
+      while (i < charString.length) {
+        const b = charString[i];
 
-        // Process operator (following Typr.js logic)
-        switch (op) {
-          case 1: // hstem
-          case 18: // hstemhm
-            {
-              const hasWidthArg = stack.length % 2 !== 0;
-              if (hasWidthArg && !haveWidth) {
-                width = stack.shift() + nominalWidthX;
-              }
-              nStems += stack.length >> 1;
-              stack.length = 0;
-              haveWidth = true;
-            }
-            break;
+        if (b >= 32) {
+          // Operand
+          const operand = this.readCharStringOperand(charString, i);
+          stack.push(operand.value);
+          i = operand.nextIndex;
+        } else {
+          // Operator
+          let op = b;
+          if (b === 12) {
+            // Two-byte operator
+            i++;
+            op = (b << 8) | charString[i];
+          }
 
-          case 3: // vstem
-          case 23: // vstemhm
-            {
-              const hasWidthArg = stack.length % 2 !== 0;
-              if (hasWidthArg && !haveWidth) {
-                width = stack.shift() + nominalWidthX;
-              }
-              nStems += stack.length >> 1;
-              stack.length = 0;
-              haveWidth = true;
-            }
-            break;
-
-          case 4: // vmoveto
-            if (stack.length > 1 && !haveWidth) {
-              width = stack.shift() + nominalWidthX;
-              haveWidth = true;
-            }
-            if (open) {
-              path.push({ type: "closepath" });
-            }
-            y += stack.pop();
-            path.push({ type: "moveto", x, y });
-            open = true;
-            break;
-
-          case 5: // rlineto
-            while (stack.length > 0) {
-              x += stack.shift();
-              y += stack.shift();
-              path.push({ type: "lineto", x, y });
-            }
-            break;
-
-          case 6: // hlineto
-          case 7: // vlineto
-            {
-              const isX = op === 6;
-              let alternate = isX;
-              while (stack.length > 0) {
-                const sval = stack.shift();
-                if (alternate) {
-                  x += sval;
-                } else {
-                  y += sval;
+          // Process operator (following Typr.js logic)
+          switch (op) {
+            case 1: // hstem
+            case 18: // hstemhm
+              {
+                const hasWidthArg = stack.length % 2 !== 0;
+                if (hasWidthArg && !haveWidth) {
+                  width = stack.shift() + nominalWidthX;
                 }
-                alternate = !alternate;
+                nStems += stack.length >> 1;
+                stack.length = 0;
+                haveWidth = true;
+              }
+              break;
+
+            case 3: // vstem
+            case 23: // vstemhm
+              {
+                const hasWidthArg = stack.length % 2 !== 0;
+                if (hasWidthArg && !haveWidth) {
+                  width = stack.shift() + nominalWidthX;
+                }
+                nStems += stack.length >> 1;
+                stack.length = 0;
+                haveWidth = true;
+              }
+              break;
+
+            case 4: // vmoveto
+              if (stack.length > 1 && !haveWidth) {
+                width = stack.shift() + nominalWidthX;
+                haveWidth = true;
+              }
+              if (open) {
+                path.push({ type: "closepath" });
+              }
+              y += stack.pop();
+              path.push({ type: "moveto", x, y });
+              open = true;
+              break;
+
+            case 5: // rlineto
+              while (stack.length > 0) {
+                x += stack.shift();
+                y += stack.shift();
                 path.push({ type: "lineto", x, y });
               }
-            }
-            break;
+              break;
 
-          case 8: // rrcurveto
-            while (stack.length >= 6) {
-              const c1x = x + stack.shift();
-              const c1y = y + stack.shift();
-              const c2x = c1x + stack.shift();
-              const c2y = c1y + stack.shift();
-              x = c2x + stack.shift();
-              y = c2y + stack.shift();
-              path.push({
-                type: "curveto",
-                x1: c1x,
-                y1: c1y,
-                x2: c2x,
-                y2: c2y,
-                x3: x,
-                y3: y,
-              });
-            }
-            break;
-
-          case 10: // callsubr
-          case 29: // callgsubr
-            if (stack.length > 0) {
-              const subrIndex = Math.round(stack.pop());
-              const subrs =
-                op === 10 ? this.cffLocalSubrs : this.cffGlobalSubrs;
-              const bias =
-                op === 10
-                  ? this.cffLocalBias || 107
-                  : this.cffGlobalBias || 107;
-
-              const adjustedIndex = subrIndex + bias;
-              if (subrs && adjustedIndex >= 0 && adjustedIndex < subrs.length) {
-                // Save state before subroutine call
-                state.x = x;
-                state.y = y;
-                state.nStems = nStems;
-                state.haveWidth = haveWidth;
-                state.width = width;
-                state.open = open;
-
-                // Call subroutine recursively
-                this.drawCFF(subrs[adjustedIndex], state);
-
-                // Restore state after subroutine call
-                x = state.x;
-                y = state.y;
-                nStems = state.nStems;
-                haveWidth = state.haveWidth;
-                width = state.width;
-                open = state.open;
-              }
-            }
-            break;
-
-          case 11: // return
-            // Return from subroutine
-            state.x = x;
-            state.y = y;
-            state.nStems = nStems;
-            state.haveWidth = haveWidth;
-            state.width = width;
-            state.open = open;
-            return;
-
-          case 14: // endchar
-            if (stack.length > 0 && !haveWidth) {
-              width = stack.shift() + nominalWidthX;
-              haveWidth = true;
-            }
-            if (open) {
-              path.push({ type: "closepath" });
-            }
-            break;
-
-          case 21: // rmoveto
-            if (stack.length > 2 && !haveWidth) {
-              width = stack.shift() + nominalWidthX;
-              haveWidth = true;
-            }
-            if (open) {
-              path.push({ type: "closepath" });
-            }
-            x += stack.shift();
-            y += stack.shift();
-            path.push({ type: "moveto", x, y });
-            open = true;
-            break;
-
-          case 22: // hmoveto
-            if (stack.length > 1 && !haveWidth) {
-              width = stack.shift() + nominalWidthX;
-              haveWidth = true;
-            }
-            if (open) {
-              path.push({ type: "closepath" });
-            }
-            x += stack.pop();
-            path.push({ type: "moveto", x, y });
-            open = true;
-            break;
-
-          case 30: // vhcurveto
-          case 31: // hvcurveto
-            {
-              const isX = op === 31;
-              let alternate = isX;
-              while (stack.length >= 4) {
-                let c1x, c1y, c2x, c2y;
-                if (alternate) {
-                  c1x = x + stack.shift();
-                  c1y = y;
-                  c2x = c1x + stack.shift();
-                  c2y = c1y + stack.shift();
-                  y = c2y + stack.shift();
-                  x = stack.length === 1 ? c2x + stack.shift() : c2x;
-                } else {
-                  c1x = x;
-                  c1y = y + stack.shift();
-                  c2x = c1x + stack.shift();
-                  c2y = c1y + stack.shift();
-                  x = c2x + stack.shift();
-                  y = stack.length === 1 ? c2y + stack.shift() : c2y;
+            case 6: // hlineto
+            case 7: // vlineto
+              {
+                const isX = op === 6;
+                let alternate = isX;
+                while (stack.length > 0) {
+                  const sval = stack.shift();
+                  if (alternate) {
+                    x += sval;
+                  } else {
+                    y += sval;
+                  }
+                  alternate = !alternate;
+                  path.push({ type: "lineto", x, y });
                 }
+              }
+              break;
+
+            case 8: // rrcurveto
+              while (stack.length >= 6) {
+                const c1x = x + stack.shift();
+                const c1y = y + stack.shift();
+                const c2x = c1x + stack.shift();
+                const c2y = c1y + stack.shift();
+                x = c2x + stack.shift();
+                y = c2y + stack.shift();
                 path.push({
                   type: "curveto",
                   x1: c1x,
@@ -1563,15 +1860,140 @@ class FontParser {
                   x3: x,
                   y3: y,
                 });
-                alternate = !alternate;
               }
-            }
-            break;
+              break;
 
-          default:
-            // Ignore unsupported operators
-            stack.length = 0;
-            break;
+            case 10: // callsubr
+            case 29: // callgsubr
+              if (stack.length > 0) {
+                const subrIndex = Math.round(stack.pop());
+                const subrs =
+                  op === 10 ? this.cffLocalSubrs : this.cffGlobalSubrs;
+                const bias =
+                  op === 10
+                    ? this.cffLocalBias || 107
+                    : this.cffGlobalBias || 107;
+
+                const adjustedIndex = subrIndex + bias;
+                if (
+                  subrs &&
+                  adjustedIndex >= 0 &&
+                  adjustedIndex < subrs.length
+                ) {
+                  // Save current position and push subroutine onto call stack
+                  current.index = i + 1;
+                  callStack.push({
+                    charString: subrs[adjustedIndex],
+                    index: 0,
+                  });
+                  // Break out of inner loop to process the subroutine
+                  i = charString.length;
+                }
+              }
+              break;
+
+            case 11: // return
+              // Return from subroutine
+              callStack.pop();
+              if (callStack.length === 0) {
+                // We're done
+                state.x = x;
+                state.y = y;
+                state.nStems = nStems;
+                state.haveWidth = haveWidth;
+                state.width = width;
+                state.open = open;
+                return;
+              }
+              // Break out of inner loop to continue with parent
+              i = charString.length;
+              break;
+
+            case 14: // endchar
+              if (stack.length > 0 && !haveWidth) {
+                width = stack.shift() + nominalWidthX;
+                haveWidth = true;
+              }
+              if (open) {
+                path.push({ type: "closepath" });
+              }
+              // endchar marks the end of the charstring
+              state.x = x;
+              state.y = y;
+              state.nStems = nStems;
+              state.haveWidth = haveWidth;
+              state.width = width;
+              state.open = open;
+              return;
+
+            case 21: // rmoveto
+              if (stack.length > 2 && !haveWidth) {
+                width = stack.shift() + nominalWidthX;
+                haveWidth = true;
+              }
+              if (open) {
+                path.push({ type: "closepath" });
+              }
+              x += stack.shift();
+              y += stack.shift();
+              path.push({ type: "moveto", x, y });
+              open = true;
+              break;
+
+            case 22: // hmoveto
+              if (stack.length > 1 && !haveWidth) {
+                width = stack.shift() + nominalWidthX;
+                haveWidth = true;
+              }
+              if (open) {
+                path.push({ type: "closepath" });
+              }
+              x += stack.pop();
+              path.push({ type: "moveto", x, y });
+              open = true;
+              break;
+
+            case 30: // vhcurveto
+            case 31: // hvcurveto
+              {
+                const isX = op === 31;
+                let alternate = isX;
+                while (stack.length >= 4) {
+                  let c1x, c1y, c2x, c2y;
+                  if (alternate) {
+                    c1x = x + stack.shift();
+                    c1y = y;
+                    c2x = c1x + stack.shift();
+                    c2y = c1y + stack.shift();
+                    y = c2y + stack.shift();
+                    x = stack.length === 1 ? c2x + stack.shift() : c2x;
+                  } else {
+                    c1x = x;
+                    c1y = y + stack.shift();
+                    c2x = c1x + stack.shift();
+                    c2y = c1y + stack.shift();
+                    x = c2x + stack.shift();
+                    y = stack.length === 1 ? c2y + stack.shift() : c2y;
+                  }
+                  path.push({
+                    type: "curveto",
+                    x1: c1x,
+                    y1: c1y,
+                    x2: c2x,
+                    y2: c2y,
+                    x3: x,
+                    y3: y,
+                  });
+                  alternate = !alternate;
+                }
+              }
+              break;
+
+            default:
+              // Ignore unsupported operators
+              stack.length = 0;
+              break;
+          }
         }
         i++;
       }
@@ -1678,14 +2100,27 @@ class FontParser {
   }
 
   // TrueType glyph parsing (simplified)
-  parseTrueTypeGlyph(glyphId) {
-    if (!this.glyphOffsets || glyphId >= this.glyphOffsets.length - 1)
-      return null;
+  parseTrueTypeGlyph(glyphId, recursionDepth = 0) {
+    console.log(
+      `  parseTrueTypeGlyph(${glyphId}, depth=${recursionDepth}) called`
+    );
 
-    const offset = this.glyphOffsets[glyphId];
-    const nextOffset = this.glyphOffsets[glyphId + 1];
-    if (offset === nextOffset)
-      return {
+    if (!this.glyphOffsets || glyphId >= this.glyphOffsets.length - 1) {
+      console.log(`    Invalid glyph ID ${glyphId}`);
+      return null;
+    }
+
+    // Check cache first
+    const cacheKey = `${glyphId}_${recursionDepth}`;
+    if (this.glyphParseCache.has(cacheKey)) {
+      console.log(`    Parse cache hit for ${cacheKey}`);
+      return this.glyphParseCache.get(cacheKey);
+    }
+
+    // Prevent excessive recursion depth
+    if (recursionDepth > 10) {
+      console.log(`    Excessive recursion depth for glyph ${glyphId}`);
+      const emptyGlyph = {
         contours: [],
         instructions: [],
         xMin: 0,
@@ -1693,6 +2128,25 @@ class FontParser {
         xMax: 0,
         yMax: 0,
       };
+      this.glyphParseCache.set(cacheKey, emptyGlyph);
+      return emptyGlyph;
+    }
+
+    const offset = this.glyphOffsets[glyphId];
+    const nextOffset = this.glyphOffsets[glyphId + 1];
+    if (offset === nextOffset) {
+      console.log(`    Empty glyph ${glyphId}`);
+      const emptyGlyph = {
+        contours: [],
+        instructions: [],
+        xMin: 0,
+        yMin: 0,
+        xMax: 0,
+        yMax: 0,
+      };
+      this.glyphParseCache.set(cacheKey, emptyGlyph);
+      return emptyGlyph;
+    }
 
     this.seek(this.tables.glyf.offset + offset);
     const numberOfContours = this.readInt16();
@@ -1701,11 +2155,32 @@ class FontParser {
     const xMax = this.readInt16();
     const yMax = this.readInt16();
 
+    console.log(`    Glyph ${glyphId}: numberOfContours=${numberOfContours}`);
+
+    let result;
     if (numberOfContours >= 0) {
-      return this.parseSimpleGlyph(numberOfContours, xMin, yMin, xMax, yMax);
+      console.log(`    Parsing as simple glyph`);
+      result = this.parseSimpleGlyph(numberOfContours, xMin, yMin, xMax, yMax);
     } else {
-      return this.parseCompositeGlyph(numberOfContours, xMin, yMin, xMax, yMax);
+      console.log(`    Parsing as composite glyph`);
+      result = this.parseCompositeGlyph(
+        numberOfContours,
+        xMin,
+        yMin,
+        xMax,
+        yMax,
+        recursionDepth
+      );
     }
+
+    // Cache the result
+    console.log(
+      `    Caching parse result for ${cacheKey}: ${
+        result?.contours?.length || 0
+      } contours`
+    );
+    this.glyphParseCache.set(cacheKey, result);
+    return result;
   }
 
   parseSimpleGlyph(numberOfContours, xMin, yMin, xMax, yMax) {
@@ -1791,8 +2266,16 @@ class FontParser {
     return { contours, instructions: [], xMin, yMin, xMax, yMax };
   }
 
-  parseCompositeGlyph(numberOfContours, xMin, yMin, xMax, yMax) {
-    const allContours = [];
+  parseCompositeGlyph(
+    numberOfContours,
+    xMin,
+    yMin,
+    xMax,
+    yMax,
+    recursionDepth
+  ) {
+    // Build list of components (parts) without expanding them
+    const parts = [];
     let flags;
 
     do {
@@ -1808,36 +2291,41 @@ class FontParser {
         arg2 = this.readInt8();
       }
 
-      const dx = flags & 0x0002 ? arg1 : 0;
-      const dy = flags & 0x0002 ? arg2 : 0;
+      let dx = 0,
+        dy = 0;
+      if (flags & 0x0002) {
+        // ARGS_ARE_XY_VALUES
+        dx = arg1;
+        dy = arg2;
+      } else {
+        // Point matching – ignore for now
+        dx = 0;
+        dy = 0;
+      }
 
       let m00 = 1,
         m01 = 0,
         m10 = 0,
         m11 = 1;
       if (flags & 0x0008) {
+        // WE_HAVE_A_SCALE
         m00 = m11 = this.readF2Dot14();
       } else if (flags & 0x0040) {
+        // WE_HAVE_AN_X_AND_Y_SCALE
         m00 = this.readF2Dot14();
         m11 = this.readF2Dot14();
       } else if (flags & 0x0080) {
+        // WE_HAVE_A_TWO_BY_TWO
         m00 = this.readF2Dot14();
         m01 = this.readF2Dot14();
         m10 = this.readF2Dot14();
         m11 = this.readF2Dot14();
       }
 
-      const baseGlyph = this.parseTrueTypeGlyph(glyphIndex);
-      if (baseGlyph?.contours?.length) {
-        for (const contour of baseGlyph.contours) {
-          const transformed = contour.map((pt) => ({
-            ...pt,
-            x: pt.x * m00 + pt.y * m01 + dx,
-            y: pt.x * m10 + pt.y * m11 + dy,
-          }));
-          allContours.push(transformed);
-        }
-      }
+      parts.push({
+        glyphIndex,
+        m: { a: m00, b: m10, c: m01, d: m11, tx: dx, ty: dy },
+      });
     } while (flags & 0x0020);
 
     if (flags & 0x0100) {
@@ -1845,7 +2333,15 @@ class FontParser {
       this.offset += instrLength;
     }
 
-    return { contours: allContours, instructions: [], xMin, yMin, xMax, yMax };
+    return {
+      contours: [], // composite glyphs do not store contours directly
+      parts,
+      instructions: [],
+      xMin,
+      yMin,
+      xMax,
+      yMax,
+    };
   }
 }
 

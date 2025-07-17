@@ -1,0 +1,666 @@
+
+=== DEBUGGING CHARACTER 'é' ===
+index.js:28 Glyph ID: 618
+font-parser.js:1151 parseGlyph(618) called
+font-parser.js:1158   Cache miss for glyph 618, parsing...
+font-parser.js:1982   parseTrueTypeGlyph(618, depth=0) called
+font-parser.js:2036     Glyph 618: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:2161 
+=== PARSING COMPOSITE GLYPH (depth 0) ===
+font-parser.js:2217 Component 0: glyph 614, flags: 626, dx: 0, dy: 0
+font-parser.js:1982   parseTrueTypeGlyph(614, depth=1) called
+font-parser.js:2036     Glyph 614: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 614_1: 1 contours
+font-parser.js:2228   Component 0 has 1 contours
+font-parser.js:2217 Component 1: glyph 74, flags: ffff, dx: -24, dy: 1065
+font-parser.js:1982   parseTrueTypeGlyph(74, depth=1) called
+font-parser.js:2036     Glyph 74: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 74_1: 2 contours
+font-parser.js:2228   Component 1 has 2 contours
+font-parser.js:2217 Component 2: glyph 88, flags: ffff, dx: -419, dy: 1403
+font-parser.js:1982   parseTrueTypeGlyph(88, depth=1) called
+font-parser.js:2036     Glyph 88: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(84, depth=2) called
+font-parser.js:2036     Glyph 84: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 84_2: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(43, depth=2) called
+font-parser.js:2036     Glyph 43: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=3) called
+font-parser.js:2036     Glyph 2: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2_3: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(24, depth=3) called
+font-parser.js:2036     Glyph 24: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=4) called
+font-parser.js:2036     Glyph 2: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2_4: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(24, depth=4) called
+font-parser.js:2036     Glyph 24: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=5) called
+font-parser.js:2036     Glyph 2: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2_5: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(24, depth=5) called
+font-parser.js:2036     Glyph 24: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=6) called
+font-parser.js:2036     Glyph 2: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2_6: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(24, depth=6) called
+font-parser.js:2036     Glyph 24: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=7) called
+font-parser.js:2036     Glyph 2: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2_7: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(24, depth=7) called
+font-parser.js:2036     Glyph 24: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=8) called
+font-parser.js:2036     Glyph 2: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2_8: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(24, depth=8) called
+font-parser.js:2036     Glyph 24: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=9) called
+font-parser.js:2036     Glyph 2: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2_9: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(24, depth=9) called
+font-parser.js:2036     Glyph 24: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=10) called
+font-parser.js:2036     Glyph 2: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2_10: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(24, depth=10) called
+font-parser.js:2036     Glyph 24: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=11) called
+font-parser.js:2000     Excessive recursion depth for glyph 2
+font-parser.js:1982   parseTrueTypeGlyph(2853, depth=11) called
+font-parser.js:2000     Excessive recursion depth for glyph 2853
+font-parser.js:2055     Caching parse result for 24_10: 0 contours
+font-parser.js:1982   parseTrueTypeGlyph(24, depth=10) called
+font-parser.js:1994     Parse cache hit for 24_10
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=10) called
+font-parser.js:1994     Parse cache hit for 2_10
+font-parser.js:1982   parseTrueTypeGlyph(2854, depth=10) called
+font-parser.js:2036     Glyph 2854: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2854_10: 2 contours
+font-parser.js:2055     Caching parse result for 24_9: 6 contours
+font-parser.js:1982   parseTrueTypeGlyph(79, depth=9) called
+font-parser.js:2036     Glyph 79: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(73, depth=10) called
+font-parser.js:2036     Glyph 73: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 73_10: 1 contours
+font-parser.js:1982   parseTrueTypeGlyph(88, depth=10) called
+font-parser.js:2036     Glyph 88: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(84, depth=11) called
+font-parser.js:2000     Excessive recursion depth for glyph 84
+font-parser.js:1982   parseTrueTypeGlyph(2700, depth=11) called
+font-parser.js:2000     Excessive recursion depth for glyph 2700
+font-parser.js:2055     Caching parse result for 88_10: 0 contours
+font-parser.js:2055     Caching parse result for 79_9: 1 contours
+font-parser.js:2055     Caching parse result for 24_8: 9 contours
+font-parser.js:1982   parseTrueTypeGlyph(142, depth=8) called
+font-parser.js:2036     Glyph 142: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(141, depth=9) called
+font-parser.js:2036     Glyph 141: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 141_9: 1 contours
+font-parser.js:1982   parseTrueTypeGlyph(88, depth=9) called
+font-parser.js:2036     Glyph 88: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(84, depth=10) called
+font-parser.js:2036     Glyph 84: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 84_10: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(43, depth=10) called
+font-parser.js:2036     Glyph 43: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=11) called
+font-parser.js:1994     Parse cache hit for 2_11
+font-parser.js:1982   parseTrueTypeGlyph(2703, depth=11) called
+font-parser.js:2000     Excessive recursion depth for glyph 2703
+font-parser.js:2055     Caching parse result for 43_10: 0 contours
+font-parser.js:2055     Caching parse result for 88_9: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(24, depth=9) called
+font-parser.js:1994     Parse cache hit for 24_9
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=9) called
+font-parser.js:1994     Parse cache hit for 2_9
+font-parser.js:1982   parseTrueTypeGlyph(1771, depth=9) called
+font-parser.js:2036     Glyph 1771: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 1771_9: 1 contours
+font-parser.js:2055     Caching parse result for 142_8: 12 contours
+font-parser.js:1982   parseTrueTypeGlyph(186, depth=8) called
+font-parser.js:2036     Glyph 186: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(161, depth=9) called
+font-parser.js:2036     Glyph 161: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 161_9: 1 contours
+font-parser.js:1982   parseTrueTypeGlyph(137, depth=9) called
+font-parser.js:2036     Glyph 137: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 137_9: 1 contours
+font-parser.js:1982   parseTrueTypeGlyph(65465, depth=9) called
+font-parser.js:1987     Invalid glyph ID 65465
+font-parser.js:2055     Caching parse result for 186_8: 2 contours
+font-parser.js:2055     Caching parse result for 24_7: 25 contours
+font-parser.js:1982   parseTrueTypeGlyph(1490, depth=7) called
+font-parser.js:2036     Glyph 1490: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 1490_7: 1 contours
+font-parser.js:2055     Caching parse result for 24_6: 28 contours
+font-parser.js:1982   parseTrueTypeGlyph(84, depth=6) called
+font-parser.js:2036     Glyph 84: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 84_6: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(43, depth=6) called
+font-parser.js:2036     Glyph 43: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=7) called
+font-parser.js:1994     Parse cache hit for 2_7
+font-parser.js:1982   parseTrueTypeGlyph(2703, depth=7) called
+font-parser.js:2036     Glyph 2703: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2703_7: 1 contours
+font-parser.js:2055     Caching parse result for 43_6: 3 contours
+font-parser.js:2055     Caching parse result for 24_5: 35 contours
+font-parser.js:1982   parseTrueTypeGlyph(67, depth=5) called
+font-parser.js:2036     Glyph 67: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(65, depth=6) called
+font-parser.js:2036     Glyph 65: numberOfContours=3
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 65_6: 3 contours
+font-parser.js:1982   parseTrueTypeGlyph(142, depth=6) called
+font-parser.js:2036     Glyph 142: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(141, depth=7) called
+font-parser.js:2036     Glyph 141: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 141_7: 1 contours
+font-parser.js:1982   parseTrueTypeGlyph(88, depth=7) called
+font-parser.js:2036     Glyph 88: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(84, depth=8) called
+font-parser.js:2036     Glyph 84: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 84_8: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(43, depth=8) called
+font-parser.js:2036     Glyph 43: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=9) called
+font-parser.js:1994     Parse cache hit for 2_9
+font-parser.js:1982   parseTrueTypeGlyph(2703, depth=9) called
+font-parser.js:2036     Glyph 2703: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2703_9: 1 contours
+font-parser.js:2055     Caching parse result for 43_8: 3 contours
+font-parser.js:2055     Caching parse result for 88_7: 5 contours
+font-parser.js:1982   parseTrueTypeGlyph(67, depth=7) called
+font-parser.js:2036     Glyph 67: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(65, depth=8) called
+font-parser.js:2036     Glyph 65: numberOfContours=3
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 65_8: 3 contours
+font-parser.js:1982   parseTrueTypeGlyph(142, depth=8) called
+font-parser.js:1994     Parse cache hit for 142_8
+font-parser.js:1982   parseTrueTypeGlyph(65, depth=8) called
+font-parser.js:1994     Parse cache hit for 65_8
+font-parser.js:1982   parseTrueTypeGlyph(2700, depth=8) called
+font-parser.js:2036     Glyph 2700: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2700_8: 1 contours
+font-parser.js:2055     Caching parse result for 67_7: 19 contours
+font-parser.js:2055     Caching parse result for 142_6: 25 contours
+font-parser.js:1982   parseTrueTypeGlyph(79, depth=6) called
+font-parser.js:2036     Glyph 79: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(73, depth=7) called
+font-parser.js:2036     Glyph 73: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 73_7: 1 contours
+font-parser.js:1982   parseTrueTypeGlyph(88, depth=7) called
+font-parser.js:1994     Parse cache hit for 88_7
+font-parser.js:2055     Caching parse result for 79_6: 6 contours
+font-parser.js:2055     Caching parse result for 67_5: 34 contours
+font-parser.js:2055     Caching parse result for 24_4: 71 contours
+font-parser.js:1982   parseTrueTypeGlyph(1679, depth=4) called
+font-parser.js:2036     Glyph 1679: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 1679_4: 2 contours
+font-parser.js:2055     Caching parse result for 24_3: 75 contours
+font-parser.js:1982   parseTrueTypeGlyph(66, depth=3) called
+font-parser.js:2036     Glyph 66: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(65, depth=4) called
+font-parser.js:2036     Glyph 65: numberOfContours=3
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 65_4: 3 contours
+font-parser.js:1982   parseTrueTypeGlyph(142, depth=4) called
+font-parser.js:2036     Glyph 142: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(141, depth=5) called
+font-parser.js:2036     Glyph 141: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 141_5: 1 contours
+font-parser.js:1982   parseTrueTypeGlyph(88, depth=5) called
+font-parser.js:2036     Glyph 88: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(84, depth=6) called
+font-parser.js:1994     Parse cache hit for 84_6
+font-parser.js:1982   parseTrueTypeGlyph(2700, depth=6) called
+font-parser.js:2036     Glyph 2700: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2700_6: 1 contours
+font-parser.js:2055     Caching parse result for 88_5: 3 contours
+font-parser.js:1982   parseTrueTypeGlyph(79, depth=5) called
+font-parser.js:2036     Glyph 79: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(73, depth=6) called
+font-parser.js:2036     Glyph 73: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 73_6: 1 contours
+font-parser.js:1982   parseTrueTypeGlyph(88, depth=6) called
+font-parser.js:2036     Glyph 88: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(84, depth=7) called
+font-parser.js:2036     Glyph 84: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 84_7: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(43, depth=7) called
+font-parser.js:2036     Glyph 43: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=8) called
+font-parser.js:1994     Parse cache hit for 2_8
+font-parser.js:1982   parseTrueTypeGlyph(2703, depth=8) called
+font-parser.js:2036     Glyph 2703: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2703_8: 1 contours
+font-parser.js:2055     Caching parse result for 43_7: 3 contours
+font-parser.js:2055     Caching parse result for 88_6: 5 contours
+font-parser.js:2055     Caching parse result for 79_5: 6 contours
+font-parser.js:2055     Caching parse result for 142_4: 10 contours
+font-parser.js:1982   parseTrueTypeGlyph(67, depth=4) called
+font-parser.js:2036     Glyph 67: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(65, depth=5) called
+font-parser.js:2036     Glyph 65: numberOfContours=3
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 65_5: 3 contours
+font-parser.js:1982   parseTrueTypeGlyph(142, depth=5) called
+font-parser.js:2036     Glyph 142: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(141, depth=6) called
+font-parser.js:2036     Glyph 141: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 141_6: 1 contours
+font-parser.js:1982   parseTrueTypeGlyph(88, depth=6) called
+font-parser.js:1994     Parse cache hit for 88_6
+font-parser.js:1982   parseTrueTypeGlyph(141, depth=6) called
+font-parser.js:1994     Parse cache hit for 141_6
+font-parser.js:1982   parseTrueTypeGlyph(2874, depth=6) called
+font-parser.js:2036     Glyph 2874: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2874_6: 1 contours
+font-parser.js:2055     Caching parse result for 142_5: 8 contours
+font-parser.js:1982   parseTrueTypeGlyph(129, depth=5) called
+font-parser.js:2036     Glyph 129: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(95, depth=6) called
+font-parser.js:2036     Glyph 95: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 95_6: 1 contours
+font-parser.js:1982   parseTrueTypeGlyph(142, depth=6) called
+font-parser.js:1994     Parse cache hit for 142_6
+font-parser.js:1982   parseTrueTypeGlyph(95, depth=6) called
+font-parser.js:1994     Parse cache hit for 95_6
+font-parser.js:1982   parseTrueTypeGlyph(1769, depth=6) called
+font-parser.js:2036     Glyph 1769: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 1769_6: 1 contours
+font-parser.js:2055     Caching parse result for 129_5: 28 contours
+font-parser.js:2055     Caching parse result for 67_4: 39 contours
+font-parser.js:2055     Caching parse result for 66_3: 52 contours
+font-parser.js:2055     Caching parse result for 43_2: 129 contours
+font-parser.js:2055     Caching parse result for 88_1: 131 contours
+font-parser.js:2228   Component 2 has 131 contours
+font-parser.js:2217 Component 3: glyph 88, flags: 2, dx: 4, dy: -74
+font-parser.js:1982   parseTrueTypeGlyph(88, depth=1) called
+font-parser.js:1994     Parse cache hit for 88_1
+font-parser.js:2228   Component 3 has 131 contours
+font-parser.js:2251 Final composite glyph has 265 contours from 4 components
+font-parser.js:2055     Caching parse result for 618_0: 265 contours
+font-parser.js:1168   Caching glyph 618 with 265 contours
+index.js:31 Number of contours: 265
+index.js:38 
+=== DEBUGGING GLYPH ID 125 ===
+font-parser.js:1151 parseGlyph(125) called
+font-parser.js:1158   Cache miss for glyph 125, parsing...
+font-parser.js:1982   parseTrueTypeGlyph(125, depth=0) called
+font-parser.js:2036     Glyph 125: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:2161 
+=== PARSING COMPOSITE GLYPH (depth 0) ===
+font-parser.js:2217 Component 0: glyph 95, flags: 427, dx: 309, dy: 0
+font-parser.js:1982   parseTrueTypeGlyph(95, depth=1) called
+font-parser.js:2036     Glyph 95: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 95_1: 1 contours
+font-parser.js:2228   Component 0 has 1 contours
+ Component 1: glyph 142, flags: ffff, dx: 0, dy: 1132
+font-parser.js:1982   parseTrueTypeGlyph(142, depth=1) called
+font-parser.js:2036     Glyph 142: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(141, depth=2) called
+font-parser.js:2036     Glyph 141: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 141_2: 1 contours
+font-parser.js:1982   parseTrueTypeGlyph(88, depth=2) called
+font-parser.js:2036     Glyph 88: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(84, depth=3) called
+font-parser.js:2036     Glyph 84: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 84_3: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(43, depth=3) called
+font-parser.js:2036     Glyph 43: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=4) called
+font-parser.js:1994     Parse cache hit for 2_4
+font-parser.js:1982   parseTrueTypeGlyph(2703, depth=4) called
+font-parser.js:2036     Glyph 2703: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2703_4: 1 contours
+font-parser.js:2055     Caching parse result for 43_3: 3 contours
+font-parser.js:2055     Caching parse result for 88_2: 5 contours
+font-parser.js:1982   parseTrueTypeGlyph(67, depth=2) called
+font-parser.js:2036     Glyph 67: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(65, depth=3) called
+font-parser.js:2036     Glyph 65: numberOfContours=3
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 65_3: 3 contours
+font-parser.js:1982   parseTrueTypeGlyph(142, depth=3) called
+font-parser.js:2036     Glyph 142: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(141, depth=4) called
+font-parser.js:2036     Glyph 141: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 141_4: 1 contours
+font-parser.js:1982   parseTrueTypeGlyph(88, depth=4) called
+font-parser.js:2036     Glyph 88: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(84, depth=5) called
+font-parser.js:2036     Glyph 84: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 84_5: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(43, depth=5) called
+font-parser.js:2036     Glyph 43: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(2, depth=6) called
+font-parser.js:1994     Parse cache hit for 2_6
+font-parser.js:1982   parseTrueTypeGlyph(2703, depth=6) called
+font-parser.js:2036     Glyph 2703: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 2703_6: 1 contours
+font-parser.js:2055     Caching parse result for 43_5: 3 contours
+font-parser.js:2055     Caching parse result for 88_4: 5 contours
+font-parser.js:1982   parseTrueTypeGlyph(67, depth=4) called
+font-parser.js:1994     Parse cache hit for 67_4
+font-parser.js:2055     Caching parse result for 142_3: 45 contours
+font-parser.js:1982   parseTrueTypeGlyph(1631, depth=3) called
+font-parser.js:2036     Glyph 1631: numberOfContours=-1
+font-parser.js:2043     Parsing as composite glyph
+font-parser.js:1982   parseTrueTypeGlyph(1582, depth=4) called
+font-parser.js:2036     Glyph 1582: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 1582_4: 2 contours
+font-parser.js:2055     Caching parse result for 1631_3: 2 contours
+font-parser.js:1982   parseTrueTypeGlyph(95, depth=3) called
+font-parser.js:2036     Glyph 95: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 95_3: 1 contours
+     Caching parse result for 67_2: 51 contours
+font-parser.js:2055     Caching parse result for 142_1: 57 contours
+font-parser.js:2228   Component 1 has 57 contours
+font-parser.js:2217 Component 2: glyph 142, flags: ffff, dx: 0, dy: 1132
+font-parser.js:1982   parseTrueTypeGlyph(142, depth=1) called
+font-parser.js:1994     Parse cache hit for 142_1
+font-parser.js:2228   Component 2 has 57 contours
+font-parser.js:2217 Component 3: glyph 95, flags: 626, dx: 0, dy: 0
+font-parser.js:1982   parseTrueTypeGlyph(95, depth=1) called
+font-parser.js:1994     Parse cache hit for 95_1
+font-parser.js:2228   Component 3 has 1 contours
+font-parser.js:2217 Component 4: glyph 1769, flags: 7, dx: 263, dy: 420
+font-parser.js:1982   parseTrueTypeGlyph(1769, depth=1) called
+font-parser.js:2036     Glyph 1769: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 1769_1: 1 contours
+font-parser.js:2228   Component 4 has 1 contours
+font-parser.js:2251 Final composite glyph has 117 contours from 5 components
+font-parser.js:2055     Caching parse result for 125_0: 117 contours
+font-parser.js:1168   Caching glyph 125 with 117 contours
+index.js:40 Number of contours: 117
+index.js:44 Contour 0: 12 points
+index.js:47   First few points: (3) [{…}, {…}, {…}]
+index.js:44 Contour 1: 40 points
+index.js:47   First few points: (3) [{…}, {…}, {…}]
+index.js:44 Contour 2: 22 points
+index.js:47   First few points: (3) [{…}, {…}, {…}]
+index.js:44 Contour 3: 4 points
+index.js:47   First few points: (3) [{…}, {…}, {…}]
+index.js:44 Contour 4: 14 points
+index.js:47   First few points: (3) [{…}, {…}, {…}]
+index.js:44 Contour 5: 4 points
+index.js:44 Contour 6: 16 points
+index.js:44 Contour 7: 20 points
+index.js:44 Contour 8: 10 points
+index.js:44 Contour 9: 10 points
+index.js:44 Contour 10: 40 points
+index.js:44 Contour 11: 22 points
+index.js:44 Contour 12: 4 points
+index.js:44 Contour 13: 14 points
+index.js:44 Contour 14: 4 points
+index.js:44 Contour 15: 16 points
+index.js:44 Contour 16: 20 points
+index.js:44 Contour 17: 10 points
+index.js:44 Contour 18: 10 points
+index.js:44 Contour 19: 40 points
+index.js:44 Contour 20: 22 points
+index.js:44 Contour 21: 4 points
+index.js:44 Contour 22: 14 points
+index.js:44 Contour 23: 4 points
+index.js:44 Contour 24: 16 points
+index.js:44 Contour 25: 40 points
+index.js:44 Contour 26: 4 points
+index.js:44 Contour 27: 12 points
+index.js:44 Contour 28: 40 points
+index.js:44 Contour 29: 22 points
+index.js:44 Contour 30: 4 points
+index.js:44 Contour 31: 14 points
+index.js:44 Contour 32: 4 points
+index.js:44 Contour 33: 16 points
+index.js:44 Contour 34: 20 points
+index.js:44 Contour 35: 10 points
+index.js:44 Contour 36: 10 points
+index.js:44 Contour 37: 40 points
+index.js:44 Contour 38: 22 points
+index.js:44 Contour 39: 4 points
+index.js:44 Contour 40: 14 points
+index.js:44 Contour 41: 4 points
+index.js:44 Contour 42: 14 points
+index.js:44 Contour 43: 4 points
+index.js:44 Contour 44: 9 points
+index.js:44 Contour 45: 13 points
+index.js:44 Contour 46: 14 points
+index.js:44 Contour 47: 4 points
+index.js:44 Contour 48: 4 points
+index.js:44 Contour 49: 20 points
+index.js:44 Contour 50: 10 points
+index.js:44 Contour 51: 10 points
+index.js:44 Contour 52: 12 points
+index.js:44 Contour 53: 12 points
+index.js:44 Contour 54: 4 points
+index.js:44 Contour 55: 13 points
+index.js:44 Contour 56: 12 points
+index.js:44 Contour 57: 12 points
+index.js:44 Contour 58: 40 points
+index.js:44 Contour 59: 22 points
+index.js:44 Contour 60: 4 points
+index.js:44 Contour 61: 14 points
+index.js:44 Contour 62: 4 points
+index.js:44 Contour 63: 16 points
+index.js:44 Contour 64: 20 points
+index.js:44 Contour 65: 10 points
+index.js:44 Contour 66: 10 points
+index.js:44 Contour 67: 40 points
+index.js:44 Contour 68: 22 points
+index.js:44 Contour 69: 4 points
+index.js:44 Contour 70: 14 points
+index.js:44 Contour 71: 4 points
+index.js:44 Contour 72: 16 points
+index.js:44 Contour 73: 20 points
+index.js:44 Contour 74: 10 points
+index.js:44 Contour 75: 10 points
+index.js:44 Contour 76: 40 points
+index.js:44 Contour 77: 22 points
+index.js:44 Contour 78: 4 points
+index.js:44 Contour 79: 14 points
+index.js:44 Contour 80: 4 points
+index.js:44 Contour 81: 16 points
+index.js:44 Contour 82: 40 points
+index.js:44 Contour 83: 4 points
+index.js:44 Contour 84: 12 points
+index.js:44 Contour 85: 40 points
+index.js:44 Contour 86: 22 points
+index.js:44 Contour 87: 4 points
+index.js:44 Contour 88: 14 points
+index.js:44 Contour 89: 4 points
+index.js:44 Contour 90: 16 points
+index.js:44 Contour 91: 20 points
+index.js:44 Contour 92: 10 points
+index.js:44 Contour 93: 10 points
+index.js:44 Contour 94: 40 points
+index.js:44 Contour 95: 22 points
+index.js:44 Contour 96: 4 points
+index.js:44 Contour 97: 14 points
+index.js:44 Contour 98: 4 points
+index.js:44 Contour 99: 14 points
+index.js:44 Contour 100: 4 points
+index.js:44 Contour 101: 9 points
+index.js:44 Contour 102: 13 points
+index.js:44 Contour 103: 14 points
+index.js:44 Contour 104: 4 points
+index.js:44 Contour 105: 4 points
+index.js:44 Contour 106: 20 points
+index.js:44 Contour 107: 10 points
+index.js:44 Contour 108: 10 points
+index.js:44 Contour 109: 12 points
+index.js:44 Contour 110: 12 points
+index.js:44 Contour 111: 4 points
+index.js:44 Contour 112: 13 points
+index.js:44 Contour 113: 12 points
+index.js:44 Contour 114: 12 points
+index.js:44 Contour 115: 12 points
+index.js:44 Contour 116: 4 points
+font-parser.js:1151 parseGlyph(161) called
+font-parser.js:1158   Cache miss for glyph 161, parsing...
+font-parser.js:1982   parseTrueTypeGlyph(161, depth=0) called
+font-parser.js:2036     Glyph 161: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 161_0: 1 contours
+font-parser.js:1168   Caching glyph 161 with 1 contours
+font-parser.js:1151 parseGlyph(161) called
+font-parser.js:1154   Cache hit for glyph 161
+font-parser.js:1151 parseGlyph(614) called
+font-parser.js:1158   Cache miss for glyph 614, parsing...
+font-parser.js:1982   parseTrueTypeGlyph(614, depth=0) called
+font-parser.js:2036     Glyph 614: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 614_0: 1 contours
+font-parser.js:1168   Caching glyph 614 with 1 contours
+font-parser.js:1151 parseGlyph(614) called
+font-parser.js:1154   Cache hit for glyph 614
+font-parser.js:1151 parseGlyph(736) called
+font-parser.js:1158   Cache miss for glyph 736, parsing...
+font-parser.js:1982   parseTrueTypeGlyph(736, depth=0) called
+font-parser.js:2036     Glyph 736: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 736_0: 1 contours
+font-parser.js:1168   Caching glyph 736 with 1 contours
+font-parser.js:1151 parseGlyph(736) called
+font-parser.js:1154   Cache hit for glyph 736
+font-parser.js:1151 parseGlyph(736) called
+font-parser.js:1154   Cache hit for glyph 736
+font-parser.js:1151 parseGlyph(736) called
+font-parser.js:1154   Cache hit for glyph 736
+font-parser.js:1151 parseGlyph(790) called
+font-parser.js:1158   Cache miss for glyph 790, parsing...
+font-parser.js:1982   parseTrueTypeGlyph(790, depth=0) called
+font-parser.js:2036     Glyph 790: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 790_0: 2 contours
+font-parser.js:1168   Caching glyph 790 with 2 contours
+font-parser.js:1151 parseGlyph(790) called
+font-parser.js:1154   Cache hit for glyph 790
+font-parser.js:1151 parseGlyph(618) called
+font-parser.js:1154   Cache hit for glyph 618
+font-parser.js:1151 parseGlyph(618) called
+font-parser.js:1154   Cache hit for glyph 618
+font-parser.js:1151 parseGlyph(459) called
+font-parser.js:1158   Cache miss for glyph 459, parsing...
+font-parser.js:1982   parseTrueTypeGlyph(459, depth=0) called
+font-parser.js:2036     Glyph 459: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 459_0: 1 contours
+font-parser.js:1168   Caching glyph 459 with 1 contours
+font-parser.js:1151 parseGlyph(459) called
+font-parser.js:1154   Cache hit for glyph 459
+font-parser.js:1151 parseGlyph(790) called
+font-parser.js:1154   Cache hit for glyph 790
+font-parser.js:1151 parseGlyph(790) called
+font-parser.js:1154   Cache hit for glyph 790
+font-parser.js:1151 parseGlyph(852) called
+font-parser.js:1158   Cache miss for glyph 852, parsing...
+font-parser.js:1982   parseTrueTypeGlyph(852, depth=0) called
+font-parser.js:2036     Glyph 852: numberOfContours=1
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 852_0: 1 contours
+font-parser.js:1168   Caching glyph 852 with 1 contours
+font-parser.js:1151 parseGlyph(852) called
+font-parser.js:1154   Cache hit for glyph 852
+font-parser.js:1151 parseGlyph(736) called
+font-parser.js:1154   Cache hit for glyph 736
+font-parser.js:1151 parseGlyph(736) called
+font-parser.js:1154   Cache hit for glyph 736
+font-parser.js:1151 parseGlyph(597) called
+font-parser.js:1158   Cache miss for glyph 597, parsing...
+font-parser.js:1982   parseTrueTypeGlyph(597, depth=0) called
+font-parser.js:2036     Glyph 597: numberOfContours=2
+font-parser.js:2040     Parsing as simple glyph
+font-parser.js:2055     Caching parse result for 597_0: 2 contours
+font-parser.js:1168   Caching glyph 597 with 2 contours
+font-parser.js:1151 parseGlyph(597) called
+font-parser.js:1154   Cache hit for glyph 597

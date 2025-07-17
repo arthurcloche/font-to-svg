@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Font Parser - Canvas Creative Coding</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        }
+
+        canvas {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-group h3 {
+            font-size: 14px;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .control-item label {
+            min-width: 80px;
+            font-size: 12px;
+            color: #bbb;
+        }
+
+        input, select, button {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            margin: 0 10px;
+            padding: 0;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            margin-left: 10px;
+        }
+
+        select {
+            flex: 1;
+            margin-left: 10px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .value {
+            min-width: 40px;
+            text-align: center;
+            font-size: 11px;
+            color: #ccc;
+            font-family: monospace;
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .preset-buttons button {
+            font-size: 11px;
+            padding: 6px 8px;
+            margin: 0;
+        }
+
+        .info {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            color: #888;
+            margin-top: 10px;
+        }
+
+        .status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #4CAF50;
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🎨 Font Canvas</h1>
+            
+            <div class="control-group">
+                <h3>Text Settings</h3>
+                <div class="control-item">
+                    <label>Text</label>
+                    <input type="text" id="textInput" value="CREATIVE">
+                </div>
+                <div class="control-item">
+                    <label>Font</label>
+                    <select id="fontSelect">
+                        <option value="BebasNeue-Regular.ttf">Bebas Neue</option>
+                        <option value="Inter_28pt-Medium.ttf">Inter Medium</option>
+                        <option value="Obviously-Variable.ttf">Obviously Variable</option>
+                        <option value="SigmaSerif-Headline.otf">Sigma Serif</option>
+                    </select>
+                </div>
+                <div class="control-item">
+                    <label>Size</label>
+                    <input type="range" id="fontSize" min="50" max="200" value="120">
+                    <span class="value" id="fontSizeValue">120</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Animation Mode</h3>
+                <div class="preset-buttons">
+                    <button onclick="setMode('particles')">Particles</button>
+                    <button onclick="setMode('wave')">Wave</button>
+                    <button onclick="setMode('explode')">Explode</button>
+                    <button onclick="setMode('morph')">Morph</button>
+                    <button onclick="setMode('trail')">Trail</button>
+                    <button onclick="setMode('glow')">Glow</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Visual Effects</h3>
+                <div class="control-item">
+                    <label>Speed</label>
+                    <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1">
+                    <span class="value" id="speedValue">1.0</span>
+                </div>
+                <div class="control-item">
+                    <label>Density</label>
+                    <input type="range" id="density" min="1" max="10" value="3">
+                    <span class="value" id="densityValue">3</span>
+                </div>
+                <div class="control-item">
+                    <label>Color</label>
+                    <select id="colorMode">
+                        <option value="rainbow">Rainbow</option>
+                        <option value="fire">Fire</option>
+                        <option value="ocean">Ocean</option>
+                        <option value="neon">Neon</option>
+                        <option value="mono">Monochrome</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Variable Font</h3>
+                <div class="control-item">
+                    <label>Weight</label>
+                    <input type="range" id="fontWeight" min="150" max="800" value="400">
+                    <span class="value" id="fontWeightValue">400</span>
+                </div>
+                <div class="control-item">
+                    <label>Width</label>
+                    <input type="range" id="fontWidth" min="100" max="800" value="400">
+                    <span class="value" id="fontWidthValue">400</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Presets</h3>
+                <button onclick="loadPreset('cosmic')">🌌 Cosmic</button>
+                <button onclick="loadPreset('retro')">📟 Retro Wave</button>
+                <button onclick="loadPreset('organic')">🌿 Organic</button>
+                <button onclick="loadPreset('minimal')">⚪ Minimal</button>
+            </div>
+
+            <div class="info">
+                <strong>Controls:</strong><br>
+                • Click to regenerate<br>
+                • Drag to move effect<br>
+                • Mouse wheel to scale
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <canvas id="canvas" width="1000" height="600"></canvas>
+        </div>
+    </div>
+
+    <div class="status" id="status">Ready</div>
+
+    <script src="../font-parser.js"></script>
+    <script>
+        class FontCanvasDemo {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.parser = new FontParser();
+                this.font = null;
+                this.points = [];
+                this.particles = [];
+                this.mode = 'particles';
+                this.animationId = null;
+                this.time = 0;
+                this.mouseX = this.canvas.width / 2;
+                this.mouseY = this.canvas.height / 2;
+                
+                this.setupEventListeners();
+                this.loadDefaultFont();
+            }
+
+            setupEventListeners() {
+                // Control updates
+                ['textInput', 'fontSize', 'speed', 'density', 'fontWeight', 'fontWidth'].forEach(id => {
+                    document.getElementById(id).addEventListener('input', () => this.updateDisplay());
+                });
+
+                document.getElementById('fontSelect').addEventListener('change', () => this.loadSelectedFont());
+                document.getElementById('colorMode').addEventListener('change', () => this.updateDisplay());
+
+                // Value displays
+                document.getElementById('fontSize').addEventListener('input', e => {
+                    document.getElementById('fontSizeValue').textContent = e.target.value;
+                });
+                document.getElementById('speed').addEventListener('input', e => {
+                    document.getElementById('speedValue').textContent = parseFloat(e.target.value).toFixed(1);
+                });
+                document.getElementById('density').addEventListener('input', e => {
+                    document.getElementById('densityValue').textContent = e.target.value;
+                });
+                document.getElementById('fontWeight').addEventListener('input', e => {
+                    document.getElementById('fontWeightValue').textContent = e.target.value;
+                });
+                document.getElementById('fontWidth').addEventListener('input', e => {
+                    document.getElementById('fontWidthValue').textContent = e.target.value;
+                });
+
+                // Mouse interaction
+                this.canvas.addEventListener('mousemove', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.mouseX = e.clientX - rect.left;
+                    this.mouseY = e.clientY - rect.top;
+                });
+
+                this.canvas.addEventListener('click', () => this.regenerate());
+                this.canvas.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const scale = e.deltaY > 0 ? 0.9 : 1.1;
+                    this.scaleEffect(scale);
+                });
+            }
+
+            async loadDefaultFont() {
+                await this.loadFont('BebasNeue-Regular.ttf');
+            }
+
+            async loadSelectedFont() {
+                const fontFile = document.getElementById('fontSelect').value;
+                await this.loadFont(fontFile);
+            }
+
+            async loadFont(filename) {
+                try {
+                    document.getElementById('status').textContent = `Loading ${filename}...`;
+                    const response = await fetch(`../fonts/${filename}`);
+                    const buffer = await response.arrayBuffer();
+                    this.font = this.parser.fromBuffer(buffer);
+                    document.getElementById('status').textContent = 'Font loaded!';
+                    this.updateDisplay();
+                } catch (error) {
+                    document.getElementById('status').textContent = `Error: ${error.message}`;
+                }
+            }
+
+            updateDisplay() {
+                if (!this.font) return;
+
+                const text = document.getElementById('textInput').value || 'CREATIVE';
+                const size = parseInt(document.getElementById('fontSize').value);
+                const weight = parseInt(document.getElementById('fontWeight').value);
+                const width = parseInt(document.getElementById('fontWidth').value);
+
+                const options = { size };
+                
+                // Add variable font settings if supported
+                if (this.font.data.isVariable) {
+                    options.variable = { wght: weight, wdth: width };
+                }
+
+                try {
+                    const result = this.parser.path(text, options);
+                    this.generatePoints(result);
+                    this.startAnimation();
+                } catch (error) {
+                    document.getElementById('status').textContent = `Error: ${error.message}`;
+                }
+            }
+
+            generatePoints(result) {
+                this.points = [];
+                const density = parseInt(document.getElementById('density').value);
+                
+                // Parse viewBox to center the text
+                const [vbX, vbY, vbWidth, vbHeight] = result.viewBox.split(' ').map(Number);
+                const offsetX = (this.canvas.width - vbWidth) / 2 - vbX;
+                const offsetY = (this.canvas.height - vbHeight) / 2 - vbY;
+
+                result.characters.forEach((char, charIndex) => {
+                    const path = new Path2D(char.path);
+                    const step = Math.max(1, Math.floor(8 / density));
+                    
+                    for (let x = vbX; x < vbX + vbWidth; x += step) {
+                        for (let y = vbY; y < vbY + vbHeight; y += step) {
+                            if (this.ctx.isPointInPath(path, x, y)) {
+                                this.points.push({
+                                    x: x + offsetX,
+                                    y: y + offsetY,
+                                    originalX: x + offsetX,
+                                    originalY: y + offsetY,
+                                    charIndex: charIndex,
+                                    angle: Math.random() * Math.PI * 2,
+                                    speed: 0.5 + Math.random() * 1.5,
+                                    size: 1 + Math.random() * 2
+                                });
+                            }
+                        }
+                    }
+                });
+
+                // Initialize particles for certain modes
+                this.particles = this.points.map(point => ({
+                    ...point,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    life: 1,
+                    targetX: point.x,
+                    targetY: point.y
+                }));
+            }
+
+            startAnimation() {
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+                this.animate();
+            }
+
+            animate() {
+                this.time += parseFloat(document.getElementById('speed').value) * 0.02;
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                switch (this.mode) {
+                    case 'particles':
+                        this.drawParticles();
+                        break;
+                    case 'wave':
+                        this.drawWave();
+                        break;
+                    case 'explode':
+                        this.drawExplode();
+                        break;
+                    case 'morph':
+                        this.drawMorph();
+                        break;
+                    case 'trail':
+                        this.drawTrail();
+                        break;
+                    case 'glow':
+                        this.drawGlow();
+                        break;
+                }
+
+                this.animationId = requestAnimationFrame(() => this.animate());
+            }
+
+            drawParticles() {
+                this.points.forEach((point, i) => {
+                    const wave = Math.sin(this.time + i * 0.1) * 3;
+                    const x = point.x + wave;
+                    const y = point.y + Math.cos(this.time + i * 0.05) * 2;
+                    
+                    this.ctx.fillStyle = this.getColor(i, point.charIndex);
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, point.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+            }
+
+            drawWave() {
+                this.points.forEach((point, i) => {
+                    const waveX = Math.sin(this.time + point.y * 0.01) * 20;
+                    const waveY = Math.cos(this.time + point.x * 0.01) * 10;
+                    
+                    this.ctx.fillStyle = this.getColor(i, point.charIndex);
+                    this.ctx.beginPath();
+                    this.ctx.arc(point.x + waveX, point.y + waveY, 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+            }
+
+            drawExplode() {
+                this.particles.forEach((particle, i) => {
+                    const distance = Math.sqrt(
+                        Math.pow(particle.originalX - this.mouseX, 2) + 
+                        Math.pow(particle.originalY - this.mouseY, 2)
+                    );
+                    
+                    const force = Math.max(0, 100 - distance) * 0.1;
+                    const angle = Math.atan2(
+                        particle.originalY - this.mouseY,
+                        particle.originalX - this.mouseX
+                    );
+                    
+                    particle.x = particle.originalX + Math.cos(angle) * force * 5;
+                    particle.y = particle.originalY + Math.sin(angle) * force * 5;
+                    
+                    this.ctx.fillStyle = this.getColor(i, particle.charIndex);
+                    this.ctx.beginPath();
+                    this.ctx.arc(particle.x, particle.y, 1 + force * 0.5, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+            }
+
+            drawMorph() {
+                this.points.forEach((point, i) => {
+                    const morphX = point.x + Math.sin(this.time + i * 0.1) * 30;
+                    const morphY = point.y + Math.cos(this.time + i * 0.08) * 20;
+                    
+                    this.ctx.fillStyle = this.getColor(i, point.charIndex);
+                    this.ctx.beginPath();
+                    this.ctx.arc(morphX, morphY, 1.5, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+            }
+
+            drawTrail() {
+                this.ctx.globalAlpha = 0.1;
+                this.ctx.fillStyle = '#000';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.globalAlpha = 1;
+
+                this.points.forEach((point, i) => {
+                    point.x += Math.sin(this.time + i * 0.1) * 0.5;
+                    point.y += Math.cos(this.time + i * 0.1) * 0.5;
+                    
+                    this.ctx.fillStyle = this.getColor(i, point.charIndex);
+                    this.ctx.beginPath();
+                    this.ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+            }
+
+            drawGlow() {
+                this.points.forEach((point, i) => {
+                    const glowSize = 3 + Math.sin(this.time + i * 0.1) * 2;
+                    
+                    // Create glow effect
+                    const gradient = this.ctx.createRadialGradient(
+                        point.x, point.y, 0,
+                        point.x, point.y, glowSize * 3
+                    );
+                    
+                    const color = this.getColor(i, point.charIndex);
+                    gradient.addColorStop(0, color);
+                    gradient.addColorStop(1, 'transparent');
+                    
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.beginPath();
+                    this.ctx.arc(point.x, point.y, glowSize * 3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Center bright point
+                    this.ctx.fillStyle = color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(point.x, point.y, 1, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+            }
+
+            getColor(index, charIndex) {
+                const colorMode = document.getElementById('colorMode').value;
+                const hue = (this.time * 50 + index * 5 + charIndex * 60) % 360;
+                
+                switch (colorMode) {
+                    case 'rainbow':
+                        return `hsl(${hue}, 70%, 60%)`;
+                    case 'fire':
+                        return `hsl(${(hue % 60) + 0}, 90%, 60%)`;
+                    case 'ocean':
+                        return `hsl(${(hue % 120) + 180}, 80%, 60%)`;
+                    case 'neon':
+                        return `hsl(${hue}, 100%, 50%)`;
+                    case 'mono':
+                        return `rgba(255, 255, 255, 0.8)`;
+                    default:
+                        return `hsl(${hue}, 70%, 60%)`;
+                }
+            }
+
+            regenerate() {
+                this.updateDisplay();
+            }
+
+            scaleEffect(scale) {
+                this.points.forEach(point => {
+                    const centerX = this.canvas.width / 2;
+                    const centerY = this.canvas.height / 2;
+                    
+                    point.x = centerX + (point.x - centerX) * scale;
+                    point.y = centerY + (point.y - centerY) * scale;
+                    point.originalX = centerX + (point.originalX - centerX) * scale;
+                    point.originalY = centerY + (point.originalY - centerY) * scale;
+                });
+            }
+        }
+
+        // Global functions for buttons
+        function setMode(mode) {
+            if (demo) {
+                demo.mode = mode;
+                document.getElementById('status').textContent = `Mode: ${mode}`;
+            }
+        }
+
+        function loadPreset(preset) {
+            const presets = {
+                cosmic: {
+                    mode: 'glow',
+                    speed: 0.5,
+                    density: 5,
+                    colorMode: 'rainbow',
+                    text: 'COSMIC'
+                },
+                retro: {
+                    mode: 'wave',
+                    speed: 1.5,
+                    density: 4,
+                    colorMode: 'neon',
+                    text: 'RETRO'
+                },
+                organic: {
+                    mode: 'morph',
+                    speed: 0.8,
+                    density: 6,
+                    colorMode: 'ocean',
+                    text: 'ORGANIC'
+                },
+                minimal: {
+                    mode: 'particles',
+                    speed: 1.0,
+                    density: 2,
+                    colorMode: 'mono',
+                    text: 'MINIMAL'
+                }
+            };
+
+            const p = presets[preset];
+            if (p) {
+                document.getElementById('textInput').value = p.text;
+                document.getElementById('speed').value = p.speed;
+                document.getElementById('speedValue').textContent = p.speed.toFixed(1);
+                document.getElementById('density').value = p.density;
+                document.getElementById('densityValue').textContent = p.density;
+                document.getElementById('colorMode').value = p.colorMode;
+                
+                if (demo) {
+                    demo.mode = p.mode;
+                    demo.updateDisplay();
+                }
+            }
+        }
+
+        // Initialize demo
+        let demo;
+        window.addEventListener('load', () => {
+            demo = new FontCanvasDemo();
+        });
+    </script>
+</body>
+</html>

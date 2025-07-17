@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Font Drawing - Typr.js</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label {
+            font-size: 14px;
+            min-width: 60px;
+        }
+
+        input, select, button {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        canvas {
+            display: block;
+            margin: 20px auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: white;
+        }
+
+        .info {
+            text-align: center;
+            color: #888;
+            margin: 20px 0;
+        }
+
+        .examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .example-btn {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .example-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .stats {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Canvas Font Drawing with Typr.js</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Text:</label>
+                <input type="text" id="textInput" value="CANVAS" maxlength="15">
+            </div>
+            
+            <div class="control-group">
+                <label>Font:</label>
+                <select id="fontSelect">
+                    <option value="BebasNeue-Regular.ttf">Bebas Neue</option>
+                    <option value="Inter_28pt-Medium.ttf">Inter Medium</option>
+                    <option value="Obviously-Variable.ttf">Obviously Variable</option>
+                    <option value="SigmaSerif-Headline.otf">Sigma Serif</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Size:</label>
+                <input type="range" id="fontSize" min="40" max="200" value="100">
+                <span id="fontSizeValue">100px</span>
+            </div>
+            
+            <div class="control-group">
+                <label>Kerning:</label>
+                <input type="range" id="kerning" min="-50" max="50" value="0" step="1">
+                <span id="kerningValue">0</span>
+            </div>
+            
+            <button onclick="regenerate()">Update Text</button>
+        </div>
+
+        <div class="examples">
+            <div class="example-btn" onclick="drawExample('filled')">
+                <strong>Filled</strong>
+            </div>
+            
+            <div class="example-btn" onclick="drawExample('outline')">
+                <strong>Outline</strong>
+            </div>
+            
+            <div class="example-btn" onclick="drawExample('gradient')">
+                <strong>Gradient</strong>
+            </div>
+            
+            <div class="example-btn" onclick="drawExample('pattern')">
+                <strong>Pattern</strong>
+            </div>
+            
+            <div class="example-btn" onclick="drawExample('shadow')">
+                <strong>Shadow</strong>
+            </div>
+            
+            <div class="example-btn" onclick="drawExample('3d')">
+                <strong>3D Effect</strong>
+            </div>
+        </div>
+
+        <canvas id="canvas" width="1000" height="400"></canvas>
+        
+        <div class="stats" id="stats">
+            Ready to draw...
+        </div>
+
+        <div class="info">
+            Direct canvas rendering using Typr.js. Perfect for creative coding and animations.
+        </div>
+    </div>
+
+    <script src="../../resources/typr/typr.js"></script>
+    <script src="../../resources/typr/typr.u.js"></script>
+    <script>
+        class TyprCanvasDemo {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.font = null;
+                this.currentPaths = [];
+                this.textBounds = null;
+                
+                this.setupEventListeners();
+                this.loadDefaultFont();
+            }
+
+            setupEventListeners() {
+                document.getElementById('textInput').addEventListener('input', () => this.regenerate());
+                
+                document.getElementById('fontSize').addEventListener('input', (e) => {
+                    document.getElementById('fontSizeValue').textContent = e.target.value + 'px';
+                    this.regenerate();
+                });
+                
+                document.getElementById('fontSelect').addEventListener('change', () => this.loadSelectedFont());
+                
+                document.getElementById('kerning').addEventListener('input', (e) => {
+                    document.getElementById('kerningValue').textContent = e.target.value;
+                    this.regenerate();
+                });
+            }
+
+            async loadDefaultFont() {
+                await this.loadFont('BebasNeue-Regular.ttf');
+            }
+
+            async loadSelectedFont() {
+                const fontFile = document.getElementById('fontSelect').value;
+                await this.loadFont(fontFile);
+            }
+
+            async loadFont(filename) {
+                try {
+                    document.getElementById('stats').textContent = `Loading ${filename}...`;
+                    const response = await fetch(`../fonts/${filename}`);
+                    const buffer = await response.arrayBuffer();
+                    
+                    // Parse font with Typr - returns an array of fonts
+                    const fonts = Typr.parse(buffer);
+                    this.font = fonts[0]; // Get the first font from the collection
+                    
+                    document.getElementById('stats').textContent = `Font loaded: ${filename}`;
+                    this.generatePaths();
+                } catch (error) {
+                    document.getElementById('stats').textContent = `Error: ${error.message}`;
+                    console.error(error);
+                }
+            }
+
+            generatePaths() {
+                if (!this.font) return;
+
+                const text = document.getElementById('textInput').value || 'CANVAS';
+                const size = parseInt(document.getElementById('fontSize').value);
+                const kerning = parseFloat(document.getElementById('kerning').value) / 100;
+
+                try {
+                    // Get font metrics
+                    const scale = size / this.font.head.unitsPerEm;
+                    
+                    // Shape the text (get glyph positions)
+                    const shape = Typr.U.shape(this.font, text);
+                    
+                    // Convert shape to path
+                    const fullPath = Typr.U.shapeToPath(this.font, shape);
+                    
+                    // Store the full path for rendering
+                    this.fullPath = fullPath;
+                    this.scale = scale;
+                    
+                    // Calculate text width from shape
+                    let totalWidth = 0;
+                    shape.forEach(glyph => {
+                        totalWidth += glyph.ax;
+                    });
+                    totalWidth *= scale;
+                    
+                    // Calculate bounds using font metrics
+                    const ascent = this.font.hhea.ascender * scale;
+                    const descent = this.font.hhea.descender * scale;
+                    
+                    this.textBounds = {
+                        width: totalWidth,
+                        height: ascent - descent,
+                        ascent: ascent,
+                        descent: descent
+                    };
+                    
+                    document.getElementById('stats').innerHTML = `
+                        Text: "${text}" | Size: ${size}px | Glyphs: ${shape.length}<br>
+                        Width: ${totalWidth.toFixed(1)}px | Height: ${this.textBounds.height.toFixed(1)}px | 
+                        Scale: ${scale.toFixed(3)}
+                    `;
+                    
+                    // Draw default filled version
+                    this.drawFilled();
+                    
+                } catch (error) {
+                    document.getElementById('stats').textContent = `Error generating paths: ${error.message}`;
+                    console.error(error);
+                }
+            }
+
+            drawPathToCanvas(path, scale, offsetX, offsetY) {
+                // Use Typr's pathToContext to draw directly to canvas
+                this.ctx.save();
+                this.ctx.translate(offsetX, offsetY);
+                this.ctx.scale(scale, -scale); // Note: flip Y axis for proper rendering
+                this.ctx.translate(0, -this.font.hhea.ascender);
+                
+                // Draw the path
+                Typr.U.pathToContext(path, this.ctx);
+                
+                this.ctx.restore();
+            }
+
+            drawFilled() {
+                this.clear();
+                
+                if (!this.fullPath) return;
+                
+                const offsetX = (this.canvas.width - this.textBounds.width) / 2;
+                const offsetY = (this.canvas.height + this.textBounds.height) / 2 - this.textBounds.descent;
+                
+                this.ctx.fillStyle = '#333';
+                this.drawPathToCanvas(this.fullPath, this.scale, offsetX, offsetY);
+                this.ctx.fill();
+            }
+
+            drawOutline() {
+                this.clear();
+                
+                if (!this.fullPath) return;
+                
+                const offsetX = (this.canvas.width - this.textBounds.width) / 2;
+                const offsetY = (this.canvas.height + this.textBounds.height) / 2 - this.textBounds.descent;
+                
+                this.ctx.strokeStyle = '#2196F3';
+                this.ctx.lineWidth = 3;
+                this.ctx.lineJoin = 'round';
+                this.ctx.lineCap = 'round';
+                
+                this.drawPathToCanvas(this.fullPath, this.scale, offsetX, offsetY);
+                this.ctx.stroke();
+            }
+
+            drawGradient() {
+                this.clear();
+                
+                if (!this.fullPath) return;
+                
+                const offsetX = (this.canvas.width - this.textBounds.width) / 2;
+                const offsetY = (this.canvas.height + this.textBounds.height) / 2 - this.textBounds.descent;
+                
+                const gradient = this.ctx.createLinearGradient(
+                    offsetX, offsetY - this.textBounds.height,
+                    offsetX + this.textBounds.width, offsetY
+                );
+                gradient.addColorStop(0, '#667eea');
+                gradient.addColorStop(0.5, '#764ba2');
+                gradient.addColorStop(1, '#f093fb');
+                
+                this.ctx.fillStyle = gradient;
+                this.drawPathToCanvas(this.fullPath, this.scale, offsetX, offsetY);
+                this.ctx.fill();
+            }
+
+            drawPattern() {
+                this.clear();
+                
+                if (!this.fullPath) return;
+                
+                // Create a pattern
+                const patternCanvas = document.createElement('canvas');
+                patternCanvas.width = 20;
+                patternCanvas.height = 20;
+                const patternCtx = patternCanvas.getContext('2d');
+                
+                // Draw pattern
+                patternCtx.fillStyle = '#4CAF50';
+                patternCtx.fillRect(0, 0, 10, 10);
+                patternCtx.fillRect(10, 10, 10, 10);
+                patternCtx.fillStyle = '#2196F3';
+                patternCtx.fillRect(10, 0, 10, 10);
+                patternCtx.fillRect(0, 10, 10, 10);
+                
+                const pattern = this.ctx.createPattern(patternCanvas, 'repeat');
+                
+                const offsetX = (this.canvas.width - this.textBounds.width) / 2;
+                const offsetY = (this.canvas.height + this.textBounds.height) / 2 - this.textBounds.descent;
+                
+                this.ctx.fillStyle = pattern;
+                this.drawPathToCanvas(this.fullPath, this.scale, offsetX, offsetY);
+                this.ctx.fill();
+            }
+
+            drawShadow() {
+                this.clear();
+                
+                if (!this.fullPath) return;
+                
+                const offsetX = (this.canvas.width - this.textBounds.width) / 2;
+                const offsetY = (this.canvas.height + this.textBounds.height) / 2 - this.textBounds.descent;
+                
+                // Set shadow properties
+                this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                this.ctx.shadowBlur = 20;
+                this.ctx.shadowOffsetX = 10;
+                this.ctx.shadowOffsetY = 10;
+                this.ctx.fillStyle = '#333';
+                
+                this.drawPathToCanvas(this.fullPath, this.scale, offsetX, offsetY);
+                this.ctx.fill();
+                
+                // Reset shadow
+                this.ctx.shadowColor = 'transparent';
+                this.ctx.shadowBlur = 0;
+                this.ctx.shadowOffsetX = 0;
+                this.ctx.shadowOffsetY = 0;
+            }
+
+            draw3D() {
+                this.clear();
+                
+                if (!this.fullPath) return;
+                
+                const offsetX = (this.canvas.width - this.textBounds.width) / 2;
+                const offsetY = (this.canvas.height + this.textBounds.height) / 2 - this.textBounds.descent;
+                
+                // Draw multiple layers for 3D effect
+                for (let i = 5; i >= 0; i--) {
+                    const brightness = 50 + i * 10;
+                    this.ctx.fillStyle = `hsl(240, 50%, ${brightness}%)`;
+                    
+                    this.drawPathToCanvas(this.fullPath, this.scale, offsetX + i * 2, offsetY + i * 2);
+                    this.ctx.fill();
+                }
+                
+                // Draw top layer
+                this.ctx.fillStyle = '#667eea';
+                this.drawPathToCanvas(this.fullPath, this.scale, offsetX, offsetY);
+                this.ctx.fill();
+            }
+
+            clear() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillStyle = '#f8f9fa';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            regenerate() {
+                this.generatePaths();
+            }
+        }
+
+        // Global functions
+        function drawExample(type) {
+            if (!demo) return;
+            
+            switch (type) {
+                case 'filled':
+                    demo.drawFilled();
+                    break;
+                case 'outline':
+                    demo.drawOutline();
+                    break;
+                case 'gradient':
+                    demo.drawGradient();
+                    break;
+                case 'pattern':
+                    demo.drawPattern();
+                    break;
+                case 'shadow':
+                    demo.drawShadow();
+                    break;
+                case '3d':
+                    demo.draw3D();
+                    break;
+            }
+        }
+
+        function regenerate() {
+            if (demo) {
+                demo.regenerate();
+            }
+        }
+
+        // Initialize
+        let demo;
+        window.addEventListener('load', () => {
+            demo = new TyprCanvasDemo();
+        });
+    </script>
+</body>
+</html>

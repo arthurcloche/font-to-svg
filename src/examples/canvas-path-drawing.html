@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KlintFontParser - Canvas Path Drawing</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label {
+            font-size: 14px;
+            min-width: 60px;
+        }
+
+        input, select, button {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        canvas {
+            display: block;
+            margin: 20px auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: white;
+        }
+
+        .info {
+            text-align: center;
+            color: #888;
+            margin: 20px 0;
+        }
+
+        .examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .example-btn {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .example-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .stats {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Canvas Path Drawing with KlintFontParser</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Text:</label>
+                <input type="text" id="textInput" value="CANVAS" maxlength="15">
+            </div>
+            
+            <div class="control-group">
+                <label>Font:</label>
+                <select id="fontSelect">
+                    <option value="BebasNeue-Regular.ttf">Bebas Neue</option>
+                    <option value="Inter_28pt-Medium.ttf">Inter Medium</option>
+                    <option value="Obviously-Variable.ttf">Obviously Variable</option>
+                    <option value="SigmaSerif-Headline.otf">Sigma Serif</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Size:</label>
+                <input type="range" id="fontSize" min="40" max="150" value="100">
+                <span id="fontSizeValue">100px</span>
+            </div>
+            
+            <div class="control-group">
+                <label>H-Align:</label>
+                <select id="horizontalAlign">
+                    <option value="left">Left</option>
+                    <option value="center" selected>Center</option>
+                    <option value="right">Right</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>V-Align:</label>
+                <select id="verticalAlign">
+                    <option value="top">Top</option>
+                    <option value="middle" selected>Middle</option>
+                    <option value="bottom">Bottom</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Kerning:</label>
+                <input type="range" id="kerning" min="-50" max="50" value="0" step="1">
+                <span id="kerningValue">0</span>
+            </div>
+            
+            <div class="control-group">
+                <label>Letter Spacing:</label>
+                <input type="range" id="letterSpacing" min="-20" max="40" value="0" step="1">
+                <span id="letterSpacingValue">0px</span>
+            </div>
+            
+            <button onclick="regenerate()">Update Text</button>
+        </div>
+
+        <div class="examples">
+            <div class="example-btn" onclick="drawExample('outline')">
+                <strong>Outline Path</strong><br>
+                <small>Draw font outlines</small>
+            </div>
+            
+            <div class="example-btn" onclick="drawExample('filled')">
+                <strong>Filled Path</strong><br>
+                <small>Fill font shapes</small>
+            </div>
+            
+            <div class="example-btn" onclick="drawExample('points')">
+                <strong>Sample Points</strong><br>
+                <small>Extract path points</small>
+            </div>
+            
+            <div class="example-btn" onclick="drawExample('gradient')">
+                <strong>Gradient Fill</strong><br>
+                <small>Colorful gradients</small>
+            </div>
+            
+            <div class="example-btn" onclick="drawExample('pattern')">
+                <strong>Pattern Fill</strong><br>
+                <small>Textured patterns</small>
+            </div>
+            
+            <div class="example-btn" onclick="drawExample('animation')">
+                <strong>Path Animation</strong><br>
+                <small>Animated drawing</small>
+            </div>
+            
+            <div class="example-btn" onclick="drawExample('debug')">
+                <strong>Debug View</strong><br>
+                <small>Show bounds & centers</small>
+            </div>
+        </div>
+
+        <canvas id="canvas" width="1000" height="400"></canvas>
+        
+        <div class="stats" id="stats">
+            Ready to draw...
+        </div>
+
+        <div class="info">
+            This demonstrates direct canvas path drawing using KlintFontParser.<br>
+            Perfect for creative coding, animations, and interactive typography.
+        </div>
+    </div>
+
+    <script src="../../KlintFontParser.js"></script>
+    <script>
+        class CanvasPathDemo {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Create mock canvas context for KlintFontParser
+                const mockContext = {
+                    canvas: this.canvas,
+                    fillStyle: '#000000',
+                    strokeStyle: '#000000',
+                    lineWidth: 1,
+                    save: () => this.ctx.save(),
+                    restore: () => this.ctx.restore(),
+                    translate: (x, y) => this.ctx.translate(x, y),
+                    fill: (path) => this.ctx.fill(path),
+                    stroke: (path) => this.ctx.stroke(path),
+                    beginPath: () => this.ctx.beginPath(),
+                    addPath: (path) => this.ctx.stroke(path)
+                };
+                
+                this.parser = new KlintFontParser(mockContext);
+                this.font = null;
+                this.currentPaths = [];
+                this.animationProgress = 0;
+                this.animationId = null;
+                this.isAdvancedMode = false;
+                
+                this.setupEventListeners();
+                this.loadDefaultFont();
+            }
+
+            setupEventListeners() {
+                // Text input
+                document.getElementById('textInput').addEventListener('input', () => this.regenerate());
+                
+                // Font size
+                document.getElementById('fontSize').addEventListener('input', (e) => {
+                    document.getElementById('fontSizeValue').textContent = e.target.value + 'px';
+                    this.regenerate();
+                });
+                
+                // Font selection
+                document.getElementById('fontSelect').addEventListener('change', () => this.loadSelectedFont());
+                
+                // Alignment controls
+                document.getElementById('horizontalAlign').addEventListener('change', () => this.regenerate());
+                document.getElementById('verticalAlign').addEventListener('change', () => this.regenerate());
+                
+                // Spacing controls
+                document.getElementById('kerning').addEventListener('input', (e) => {
+                    document.getElementById('kerningValue').textContent = e.target.value;
+                    this.regenerate();
+                });
+                
+                document.getElementById('letterSpacing').addEventListener('input', (e) => {
+                    document.getElementById('letterSpacingValue').textContent = e.target.value + 'px';
+                    this.regenerate();
+                });
+            }
+
+            async loadDefaultFont() {
+                await this.loadFont('BebasNeue-Regular.ttf');
+            }
+
+            async loadSelectedFont() {
+                const fontFile = document.getElementById('fontSelect').value;
+                await this.loadFont(fontFile);
+            }
+
+            async loadFont(filename) {
+                try {
+                    document.getElementById('stats').textContent = `Loading ${filename}...`;
+                    const response = await fetch(`../fonts/${filename}`);
+                    const buffer = await response.arrayBuffer();
+                    this.font = await this.parser.loadFontFromBuffer(buffer);
+                    document.getElementById('stats').textContent = `Font loaded: ${filename}`;
+                    this.generatePaths();
+                } catch (error) {
+                    document.getElementById('stats').textContent = `Error: ${error.message}`;
+                }
+            }
+
+            generatePaths() {
+                if (!this.font) return;
+
+                const text = document.getElementById('textInput').value || 'CANVAS';
+                const size = parseInt(document.getElementById('fontSize').value);
+                const horizontalAlign = document.getElementById('horizontalAlign').value;
+                const verticalAlign = document.getElementById('verticalAlign').value;
+                const kerning = parseFloat(document.getElementById('kerning').value) / 100; // Convert to factor
+                const letterSpacing = parseInt(document.getElementById('letterSpacing').value);
+
+                try {
+                    // Check if we should use KlintFontParser for advanced features
+                    const useAdvancedFeatures = horizontalAlign !== 'left' || verticalAlign !== 'top' || letterSpacing !== 0;
+                    
+                    if (useAdvancedFeatures) {
+                        // Use KlintFontParser for advanced alignment and spacing
+                        const result = this.parser.toPaths(text, this.canvas.width/2, this.canvas.height/2, {
+                            'text-size': size,
+                            'block-horizontal-align': horizontalAlign,
+                            'block-vertical-align': verticalAlign,
+                            'letter-spacing': letterSpacing
+                        });
+                        
+                        this.currentPaths = result.letters;
+                        this.isAdvancedMode = true;
+                        
+                        // Update stats
+                        document.getElementById('stats').innerHTML = `
+                            Text: "${text}" | Size: ${size}px | Letters: ${result.letters.length}<br>
+                            Bounds: ${result.bounds.w.toFixed(1)}×${result.bounds.h.toFixed(1)}px | Mode: Advanced<br>
+                            H-Align: ${horizontalAlign} | V-Align: ${verticalAlign} | Letter Spacing: ${letterSpacing}px
+                        `;
+                    } else {
+                        // Use FontParser for basic rendering with kerning
+                        const result = this.parser.fontParser.path(text, { 
+                            size: size,
+                            kerning: kerning
+                        });
+                        
+                        this.currentPaths = result.characters;
+                        this.isAdvancedMode = false;
+                        
+                        // Update stats
+                        document.getElementById('stats').innerHTML = `
+                            Text: "${text}" | Size: ${size}px | Characters: ${result.characters.length}<br>
+                            ViewBox: ${result.viewBox} | Dimensions: ${result.width.toFixed(1)}×${result.height.toFixed(1)}px<br>
+                            Mode: Standard | Kerning: ${(kerning * 100).toFixed(0)}%
+                        `;
+                    }
+                    
+                    // Draw default filled version
+                    this.drawFilled();
+                    
+                } catch (error) {
+                    document.getElementById('stats').textContent = `Error generating paths: ${error.message}`;
+                }
+            }
+
+            drawOutline() {
+                this.clear();
+                
+                this.ctx.save();
+                this.ctx.strokeStyle = '#2196F3';
+                this.ctx.lineWidth = 2;
+                this.ctx.lineJoin = 'round';
+                this.ctx.lineCap = 'round';
+
+                if (this.isAdvancedMode) {
+                    // KlintFontParser mode - paths are already positioned
+                    this.currentPaths.forEach(letter => {
+                        const path = new Path2D(letter.path);
+                        this.ctx.stroke(path);
+                    });
+                } else {
+                    // FontParser mode - need to center the text
+                    const [vbX, vbY, vbWidth, vbHeight] = this.getViewBox();
+                    const offsetX = (this.canvas.width - vbWidth) / 2 - vbX;
+                    const offsetY = (this.canvas.height - vbHeight) / 2 - vbY;
+                    
+                    this.ctx.translate(offsetX, offsetY);
+                    this.currentPaths.forEach(char => {
+                        const path = new Path2D(char.path);
+                        this.ctx.stroke(path);
+                    });
+                }
+
+                this.ctx.restore();
+            }
+
+            drawFilled() {
+                this.clear();
+                
+                this.ctx.save();
+                this.ctx.fillStyle = '#333';
+
+                if (this.isAdvancedMode) {
+                    // KlintFontParser mode - paths are already positioned
+                    this.currentPaths.forEach(letter => {
+                        const path = new Path2D(letter.path);
+                        this.ctx.fill(path);
+                    });
+                } else {
+                    // FontParser mode - need to center the text
+                    const [vbX, vbY, vbWidth, vbHeight] = this.getViewBox();
+                    const offsetX = (this.canvas.width - vbWidth) / 2 - vbX;
+                    const offsetY = (this.canvas.height - vbHeight) / 2 - vbY;
+                    
+                    this.ctx.translate(offsetX, offsetY);
+                    this.currentPaths.forEach(char => {
+                        const path = new Path2D(char.path);
+                        this.ctx.fill(path);
+                    });
+                }
+
+                this.ctx.restore();
+            }
+
+            drawPoints() {
+                this.clear();
+                
+                this.ctx.save();
+                let pointCount = 0;
+
+                if (this.isAdvancedMode) {
+                    // KlintFontParser mode - sample across canvas
+                    this.currentPaths.forEach((letter, letterIndex) => {
+                        const path = new Path2D(letter.path);
+                        const hue = letterIndex * 60;
+                        
+                        for (let x = 0; x < this.canvas.width; x += 3) {
+                            for (let y = 0; y < this.canvas.height; y += 3) {
+                                if (this.ctx.isPointInPath(path, x, y)) {
+                                    this.ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+                                    this.ctx.beginPath();
+                                    this.ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+                                    this.ctx.fill();
+                                    pointCount++;
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    // FontParser mode - sample with offset
+                    const [vbX, vbY, vbWidth, vbHeight] = this.getViewBox();
+                    const offsetX = (this.canvas.width - vbWidth) / 2 - vbX;
+                    const offsetY = (this.canvas.height - vbHeight) / 2 - vbY;
+                    
+                    this.ctx.translate(offsetX, offsetY);
+                    
+                    this.currentPaths.forEach((char, charIndex) => {
+                        const path = new Path2D(char.path);
+                        const hue = charIndex * 60;
+                        
+                        for (let x = vbX; x < vbX + vbWidth; x += 3) {
+                            for (let y = vbY; y < vbY + vbHeight; y += 3) {
+                                if (this.ctx.isPointInPath(path, x, y)) {
+                                    this.ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+                                    this.ctx.beginPath();
+                                    this.ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+                                    this.ctx.fill();
+                                    pointCount++;
+                                }
+                            }
+                        }
+                    });
+                }
+
+                this.ctx.restore();
+                
+                // Update stats with point count
+                const currentStats = document.getElementById('stats').innerHTML;
+                document.getElementById('stats').innerHTML = currentStats + `<br>Points sampled: ${pointCount}`;
+            }
+
+            drawGradient() {
+                this.clear();
+                
+                this.ctx.save();
+
+                if (this.isAdvancedMode) {
+                    // KlintFontParser mode
+                    this.currentPaths.forEach((letter, letterIndex) => {
+                        const path = new Path2D(letter.path);
+                        
+                        const gradient = this.ctx.createLinearGradient(
+                            0, 0, this.canvas.width, this.canvas.height
+                        );
+                        const hue1 = letterIndex * 60;
+                        const hue2 = (letterIndex * 60 + 120) % 360;
+                        
+                        gradient.addColorStop(0, `hsl(${hue1}, 80%, 60%)`);
+                        gradient.addColorStop(1, `hsl(${hue2}, 80%, 40%)`);
+                        
+                        this.ctx.fillStyle = gradient;
+                        this.ctx.fill(path);
+                    });
+                } else {
+                    // FontParser mode
+                    const [vbX, vbY, vbWidth, vbHeight] = this.getViewBox();
+                    const offsetX = (this.canvas.width - vbWidth) / 2 - vbX;
+                    const offsetY = (this.canvas.height - vbHeight) / 2 - vbY;
+                    
+                    this.ctx.translate(offsetX, offsetY);
+                    
+                    this.currentPaths.forEach((char, charIndex) => {
+                        const path = new Path2D(char.path);
+                        
+                        const gradient = this.ctx.createLinearGradient(
+                            vbX, vbY, vbX + vbWidth, vbY + vbHeight
+                        );
+                        const hue1 = charIndex * 60;
+                        const hue2 = (charIndex * 60 + 120) % 360;
+                        
+                        gradient.addColorStop(0, `hsl(${hue1}, 80%, 60%)`);
+                        gradient.addColorStop(1, `hsl(${hue2}, 80%, 40%)`);
+                        
+                        this.ctx.fillStyle = gradient;
+                        this.ctx.fill(path);
+                    });
+                }
+
+                this.ctx.restore();
+            }
+
+            drawPattern() {
+                this.clear();
+                
+                // Create a pattern
+                const patternCanvas = document.createElement('canvas');
+                patternCanvas.width = 20;
+                patternCanvas.height = 20;
+                const patternCtx = patternCanvas.getContext('2d');
+                
+                // Draw pattern
+                patternCtx.fillStyle = '#4CAF50';
+                patternCtx.fillRect(0, 0, 10, 10);
+                patternCtx.fillRect(10, 10, 10, 10);
+                patternCtx.fillStyle = '#2196F3';
+                patternCtx.fillRect(10, 0, 10, 10);
+                patternCtx.fillRect(0, 10, 10, 10);
+                
+                const pattern = this.ctx.createPattern(patternCanvas, 'repeat');
+                
+                this.ctx.save();
+                this.ctx.fillStyle = pattern;
+
+                if (this.isAdvancedMode) {
+                    // KlintFontParser mode
+                    this.currentPaths.forEach(letter => {
+                        const path = new Path2D(letter.path);
+                        this.ctx.fill(path);
+                    });
+                } else {
+                    // FontParser mode
+                    const [vbX, vbY, vbWidth, vbHeight] = this.getViewBox();
+                    const offsetX = (this.canvas.width - vbWidth) / 2 - vbX;
+                    const offsetY = (this.canvas.height - vbHeight) / 2 - vbY;
+                    
+                    this.ctx.translate(offsetX, offsetY);
+                    this.currentPaths.forEach(char => {
+                        const path = new Path2D(char.path);
+                        this.ctx.fill(path);
+                    });
+                }
+
+                this.ctx.restore();
+            }
+
+            drawAnimation() {
+                this.clear();
+                
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+
+                this.animationProgress = 0;
+                this.animatePathDrawing();
+            }
+
+            animatePathDrawing() {
+                this.clear();
+                
+                this.ctx.save();
+                this.ctx.strokeStyle = '#FF5722';
+                this.ctx.lineWidth = 3;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+
+                if (this.isAdvancedMode) {
+                    // KlintFontParser mode
+                    this.currentPaths.forEach((letter, letterIndex) => {
+                        const letterProgress = (this.animationProgress - letterIndex * 0.2);
+                        if (letterProgress > 0) {
+                            const path = new Path2D(letter.path);
+                            
+                            this.ctx.setLineDash([5, 5]);
+                            this.ctx.lineDashOffset = -letterProgress * 50;
+                            this.ctx.globalAlpha = Math.min(1, letterProgress);
+                            
+                            this.ctx.stroke(path);
+                        }
+                    });
+                } else {
+                    // FontParser mode
+                    const [vbX, vbY, vbWidth, vbHeight] = this.getViewBox();
+                    const offsetX = (this.canvas.width - vbWidth) / 2 - vbX;
+                    const offsetY = (this.canvas.height - vbHeight) / 2 - vbY;
+                    
+                    this.ctx.translate(offsetX, offsetY);
+                    
+                    this.currentPaths.forEach((char, charIndex) => {
+                        const charProgress = (this.animationProgress - charIndex * 0.2);
+                        if (charProgress > 0) {
+                            const path = new Path2D(char.path);
+                            
+                            this.ctx.setLineDash([5, 5]);
+                            this.ctx.lineDashOffset = -charProgress * 50;
+                            this.ctx.globalAlpha = Math.min(1, charProgress);
+                            
+                            this.ctx.stroke(path);
+                        }
+                    });
+                }
+
+                this.ctx.restore();
+
+                this.animationProgress += 0.02;
+
+                if (this.animationProgress < this.currentPaths.length + 1) {
+                    this.animationId = requestAnimationFrame(() => this.animatePathDrawing());
+                }
+            }
+
+            drawDebug() {
+                this.clear();
+                
+                this.ctx.save();
+
+                // Draw center reference lines first (behind everything)
+                this.drawCenterLines();
+
+                // Draw the text paths
+                this.ctx.fillStyle = '#333';
+                this.ctx.globalAlpha = 0.7;
+
+                if (this.isAdvancedMode) {
+                    this.currentPaths.forEach(letter => {
+                        const path = new Path2D(letter.path);
+                        this.ctx.fill(path);
+                    });
+                } else {
+                    const [vbX, vbY, vbWidth, vbHeight] = this.getViewBox();
+                    const offsetX = (this.canvas.width - vbWidth) / 2 - vbX;
+                    const offsetY = (this.canvas.height - vbHeight) / 2 - vbY;
+                    
+                    this.ctx.translate(offsetX, offsetY);
+                    this.currentPaths.forEach(char => {
+                        const path = new Path2D(char.path);
+                        this.ctx.fill(path);
+                    });
+                }
+
+                this.ctx.restore();
+
+                // Draw debug overlays (on top)
+                this.drawDebugOverlays();
+            }
+
+            drawCenterLines() {
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+                
+                this.ctx.save();
+                this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+                this.ctx.lineWidth = 1;
+                this.ctx.setLineDash([5, 5]);
+                
+                // Vertical center line
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX, 0);
+                this.ctx.lineTo(centerX, this.canvas.height);
+                this.ctx.stroke();
+                
+                // Horizontal center line
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, centerY);
+                this.ctx.lineTo(this.canvas.width, centerY);
+                this.ctx.stroke();
+                
+                this.ctx.restore();
+            }
+
+            drawDebugOverlays() {
+                this.ctx.save();
+                
+                if (this.isAdvancedMode) {
+                    this.drawAdvancedModeDebug();
+                } else {
+                    this.drawStandardModeDebug();
+                }
+                
+                this.ctx.restore();
+            }
+
+            drawAdvancedModeDebug() {
+                // Draw anchor point (text center)
+                const anchorX = this.canvas.width / 2;
+                const anchorY = this.canvas.height / 2;
+                
+                this.ctx.fillStyle = '#ff0000';
+                this.ctx.beginPath();
+                this.ctx.arc(anchorX, anchorY, 4, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Label anchor point
+                this.ctx.fillStyle = '#ff0000';
+                this.ctx.font = '12px monospace';
+                this.ctx.fillText('ANCHOR', anchorX + 8, anchorY - 8);
+                
+                // Draw letter debug info
+                this.currentPaths.forEach((letter, index) => {
+                    this.drawLetterDebugInfo(letter, index);
+                });
+                
+                // Draw overall text bounds if available
+                if (this.currentPaths.length > 0) {
+                    this.drawOverallBounds();
+                }
+            }
+
+            drawStandardModeDebug() {
+                const [vbX, vbY, vbWidth, vbHeight] = this.getViewBox();
+                const offsetX = (this.canvas.width - vbWidth) / 2 - vbX;
+                const offsetY = (this.canvas.height - vbHeight) / 2 - vbY;
+                
+                this.ctx.save();
+                this.ctx.translate(offsetX, offsetY);
+                
+                // Draw viewBox
+                this.ctx.strokeStyle = '#00ff00';
+                this.ctx.lineWidth = 2;
+                this.ctx.setLineDash([3, 3]);
+                this.ctx.strokeRect(vbX, vbY, vbWidth, vbHeight);
+                
+                // Label viewBox
+                this.ctx.fillStyle = '#00ff00';
+                this.ctx.font = '12px monospace';
+                this.ctx.fillText('VIEWBOX', vbX + 5, vbY + 15);
+                
+                // Draw character debug info
+                this.currentPaths.forEach((char, index) => {
+                    this.drawCharacterDebugInfo(char, index, vbX, vbY, vbWidth, vbHeight);
+                });
+                
+                this.ctx.restore();
+                
+                // Draw anchor point (calculated center)
+                const anchorX = this.canvas.width / 2;
+                const anchorY = this.canvas.height / 2;
+                
+                this.ctx.fillStyle = '#ff0000';
+                this.ctx.beginPath();
+                this.ctx.arc(anchorX, anchorY, 4, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.fillStyle = '#ff0000';
+                this.ctx.font = '12px monospace';
+                this.ctx.fillText('ANCHOR', anchorX + 8, anchorY - 8);
+            }
+
+            drawLetterDebugInfo(letter, index) {
+                const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3'];
+                const color = colors[index % colors.length];
+                
+                // Draw letter center
+                if (letter.center) {
+                    this.ctx.fillStyle = color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(letter.center.x, letter.center.y, 3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Label letter center
+                    this.ctx.font = '10px monospace';
+                    this.ctx.fillText(`${letter.value}`, letter.center.x + 5, letter.center.y - 5);
+                }
+                
+                // Draw letter bounds
+                if (letter.bounds && letter.center) {
+                    this.ctx.strokeStyle = color;
+                    this.ctx.lineWidth = 1;
+                    this.ctx.setLineDash([2, 2]);
+                    
+                    const rectX = letter.center.x - letter.bounds.w / 2;
+                    const rectY = letter.center.y - letter.bounds.h / 2;
+                    
+                    this.ctx.strokeRect(rectX, rectY, letter.bounds.w, letter.bounds.h);
+                }
+            }
+
+            drawCharacterDebugInfo(char, index, vbX, vbY, vbWidth, vbHeight) {
+                const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3'];
+                const color = colors[index % colors.length];
+                
+                // Try to extract character bounds from path
+                const bounds = this.extractPathBounds(char.path);
+                if (bounds) {
+                    // Draw character bounds
+                    this.ctx.strokeStyle = color;
+                    this.ctx.lineWidth = 1;
+                    this.ctx.setLineDash([2, 2]);
+                    this.ctx.strokeRect(bounds.minX, bounds.minY, bounds.width, bounds.height);
+                    
+                    // Draw character center
+                    const centerX = bounds.minX + bounds.width / 2;
+                    const centerY = bounds.minY + bounds.height / 2;
+                    
+                    this.ctx.fillStyle = color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Label character
+                    this.ctx.font = '10px monospace';
+                    this.ctx.fillText(`${char.char}`, centerX + 5, centerY - 5);
+                }
+            }
+
+            drawOverallBounds() {
+                // Calculate overall bounds from all letters
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                
+                this.currentPaths.forEach(letter => {
+                    if (letter.bounds && letter.center) {
+                        const rectX = letter.center.x - letter.bounds.w / 2;
+                        const rectY = letter.center.y - letter.bounds.h / 2;
+                        
+                        minX = Math.min(minX, rectX);
+                        minY = Math.min(minY, rectY);
+                        maxX = Math.max(maxX, rectX + letter.bounds.w);
+                        maxY = Math.max(maxY, rectY + letter.bounds.h);
+                    }
+                });
+                
+                if (isFinite(minX)) {
+                    this.ctx.strokeStyle = '#00ff00';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.setLineDash([5, 5]);
+                    this.ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+                    
+                    // Label overall bounds
+                    this.ctx.fillStyle = '#00ff00';
+                    this.ctx.font = '12px monospace';
+                    this.ctx.fillText('TEXT BOUNDS', minX + 5, minY + 15);
+                }
+            }
+
+            extractPathBounds(pathString) {
+                const coords = pathString.match(/-?\d+\.?\d*/g);
+                if (!coords || coords.length < 2) return null;
+                
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                
+                for (let i = 0; i < coords.length; i += 2) {
+                    const x = parseFloat(coords[i]);
+                    const y = parseFloat(coords[i + 1]);
+                    if (!isNaN(x) && !isNaN(y)) {
+                        minX = Math.min(minX, x);
+                        maxX = Math.max(maxX, x);
+                        minY = Math.min(minY, y);
+                        maxY = Math.max(maxY, y);
+                    }
+                }
+                
+                return {
+                    minX: minX,
+                    minY: minY,
+                    width: maxX - minX,
+                    height: maxY - minY
+                };
+            }
+
+            getViewBox() {
+                if (this.currentPaths.length === 0) return [0, 0, 100, 100];
+                
+                // Calculate bounding box of all paths
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                
+                this.currentPaths.forEach(char => {
+                    // This is a simplified bounding box calculation
+                    // In a real implementation, you'd parse the path commands
+                    const matches = char.path.match(/-?\d+\.?\d*/g);
+                    if (matches) {
+                        for (let i = 0; i < matches.length; i += 2) {
+                            const x = parseFloat(matches[i]);
+                            const y = parseFloat(matches[i + 1]);
+                            if (!isNaN(x) && !isNaN(y)) {
+                                minX = Math.min(minX, x);
+                                maxX = Math.max(maxX, x);
+                                minY = Math.min(minY, y);
+                                maxY = Math.max(maxY, y);
+                            }
+                        }
+                    }
+                });
+                
+                return [minX, minY, maxX - minX, maxY - minY];
+            }
+
+            clear() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillStyle = '#f8f9fa';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            regenerate() {
+                this.generatePaths();
+            }
+        }
+
+        // Global functions
+        function drawExample(type) {
+            if (!demo) return;
+            
+            switch (type) {
+                case 'outline':
+                    demo.drawOutline();
+                    break;
+                case 'filled':
+                    demo.drawFilled();
+                    break;
+                case 'points':
+                    demo.drawPoints();
+                    break;
+                case 'gradient':
+                    demo.drawGradient();
+                    break;
+                case 'pattern':
+                    demo.drawPattern();
+                    break;
+                case 'animation':
+                    demo.drawAnimation();
+                    break;
+                case 'debug':
+                    demo.drawDebug();
+                    break;
+            }
+        }
+
+        function regenerate() {
+            if (demo) {
+                demo.regenerate();
+            }
+        }
+
+        // Initialize
+        let demo;
+        window.addEventListener('load', () => {
+            demo = new CanvasPathDemo();
+        });
+    </script>
+</body>
+</html>
