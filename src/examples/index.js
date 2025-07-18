@@ -54,7 +54,19 @@ function debugGlyphById(parser, glyphId) {
 
 const demo = async () => {
   const parser = new FontParser();
-  await parser.from("../fonts/Inter_28pt-Medium.ttf"); // swap font here
+  await parser.from("../fonts/BebasNeue-Regular.ttf"); // swap font here
+
+  // If variable font, set random variation values
+  if (parser.isVariableFont) {
+    const axes = parser.getAxes();
+    const randomVals = {};
+    axes.forEach((axis) => {
+      const rand = axis.min + Math.random() * (axis.max - axis.min);
+      randomVals[axis.tag] = rand;
+    });
+    parser.setVariation(randomVals);
+    console.log("Applied random variation:", randomVals);
+  }
 
   // a representative sample (Latin-1 + digits)
   const chars = (
@@ -88,6 +100,35 @@ const demo = async () => {
     const y = (row + 1) * cell - fontSize * 0.2;
     pathEl.setAttribute("transform", `translate(${x},${y})`);
     svg.appendChild(pathEl);
+
+    // Draw bounding box and baseline
+    const bounds = parser.getGlyphBounds(ch, { scale });
+    if (bounds) {
+      const rect = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "rect"
+      );
+      rect.setAttribute("x", x + bounds.minX);
+      rect.setAttribute("y", y + bounds.minY);
+      rect.setAttribute("width", bounds.width);
+      rect.setAttribute("height", bounds.height);
+      rect.setAttribute("fill", "none");
+      rect.setAttribute("stroke", "red");
+      rect.setAttribute("stroke-width", "0.5");
+      svg.appendChild(rect);
+
+      const baseline = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "line"
+      );
+      baseline.setAttribute("x1", x + bounds.minX);
+      baseline.setAttribute("x2", x + bounds.maxX);
+      baseline.setAttribute("y1", y);
+      baseline.setAttribute("y2", y);
+      baseline.setAttribute("stroke", "blue");
+      baseline.setAttribute("stroke-width", "0.5");
+      svg.appendChild(baseline);
+    }
 
     col++;
     if (col === perRow) {

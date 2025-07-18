@@ -1173,14 +1173,10 @@ export default class FontParser {
 
   // Main glyph parsing with caching and variation support
   parseGlyph(glyphId) {
-    console.log(`parseGlyph(${glyphId}) called`);
-
     if (this.glyphCache.has(glyphId)) {
-      console.log(`  Cache hit for glyph ${glyphId}`);
       return this.glyphCache.get(glyphId);
     }
 
-    console.log(`  Cache miss for glyph ${glyphId}, parsing...`);
     let baseGlyph;
     if (this.fontType === "cff") {
       baseGlyph = this.parseCFFGlyph(glyphId);
@@ -1190,11 +1186,6 @@ export default class FontParser {
 
     const glyph = this.applyVariationToGlyph(baseGlyph, glyphId);
     if (glyph) {
-      console.log(
-        `  Caching glyph ${glyphId} with ${
-          glyph.contours?.length || 0
-        } contours`
-      );
       this.glyphCache.set(glyphId, glyph);
     }
     return glyph;
@@ -1766,7 +1757,7 @@ export default class FontParser {
           // Operand
           const operand = this.readCharStringOperand(charString, i);
           stack.push(operand.value);
-          i = operand.nextIndex;
+          i = operand.nextIndex - 1; // -1 because loop increments i
         } else {
           // Operator
           let op = b;
@@ -1812,9 +1803,12 @@ export default class FontParser {
               if (open) {
                 path.push({ type: "closepath" });
               }
-              y += stack.pop();
+              if (stack.length > 0) {
+                y += stack.pop();
+              }
               path.push({ type: "moveto", x, y });
               open = true;
+              stack.length = 0;
               break;
 
             case 5: // rlineto
@@ -1866,29 +1860,27 @@ export default class FontParser {
             case 10: // callsubr
             case 29: // callgsubr
               if (stack.length > 0) {
-                const subrIndex = Math.round(stack.pop());
+                const subrIndexRaw = Math.round(stack.pop());
                 const subrs =
                   op === 10 ? this.cffLocalSubrs : this.cffGlobalSubrs;
                 const bias =
                   op === 10
                     ? this.cffLocalBias || 107
                     : this.cffGlobalBias || 107;
-
-                const adjustedIndex = subrIndex + bias;
+                const adjustedIndex = subrIndexRaw + bias;
                 if (
                   subrs &&
                   adjustedIndex >= 0 &&
                   adjustedIndex < subrs.length
                 ) {
-                  // Save current position and push subroutine onto call stack
                   current.index = i + 1;
                   callStack.push({
                     charString: subrs[adjustedIndex],
                     index: 0,
                   });
-                  // Break out of inner loop to process the subroutine
-                  i = charString.length;
+                  i = charString.length; // jump out to process subroutine
                 }
+                // If out-of-range, just ignore the call
               }
               break;
 
@@ -1934,10 +1926,13 @@ export default class FontParser {
               if (open) {
                 path.push({ type: "closepath" });
               }
-              x += stack.shift();
-              y += stack.shift();
+              if (stack.length >= 2) {
+                x += stack.shift();
+                y += stack.shift();
+              }
               path.push({ type: "moveto", x, y });
               open = true;
+              stack.length = 0;
               break;
 
             case 22: // hmoveto
@@ -1948,9 +1943,12 @@ export default class FontParser {
               if (open) {
                 path.push({ type: "closepath" });
               }
-              x += stack.pop();
+              if (stack.length > 0) {
+                x += stack.pop();
+              }
               path.push({ type: "moveto", x, y });
               open = true;
+              stack.length = 0;
               break;
 
             case 30: // vhcurveto
@@ -1985,6 +1983,82 @@ export default class FontParser {
                     y3: y,
                   });
                   alternate = !alternate;
+                }
+              }
+              break;
+
+            case 19: // hintmask
+            case 20: // cntrmask
+              {
+                // Handle potential width arg first
+                if (stack.length % 2 !== 0 && !haveWidth) {
+                  width = stack.shift() + nominalWidthX;
+                  haveWidth = true;
+                }
+                nStems += stack.length >> 1;
+                stack.length = 0;
+                // Consume (nStems+7)/8 mask bytes following the operator
+                const maskBytes = Math.ceil(nStems / 8);
+                i += maskBytes;
+              }
+              break;
+
+            case 34: // flex (12 34)
+              {
+                // flex: dx1 dy1 dx2 dy2 dx3 dy3 dx4 dy4 dx5 dy5 dx6 dy6 flexDepth
+                if (stack.length >= 13) {
+                  const flexDepth = stack.pop();
+                  const dy6 = stack.pop();
+                  const dx6 = stack.pop();
+                  // Consume the rest of the operands (we ignore drawing for now)
+                  stack.length = 0;
+                  x += dx6;
+                  y += dy6;
+                  path.push({ type: "lineto", x, y });
+                } else {
+                  stack.length = 0;
+                }
+              }
+              break;
+            case 35: // hflex (12 35) – horizontal flex, 7 numbers
+              {
+                if (stack.length >= 7) {
+                  const dx6 = stack.pop(); // last horizontal move
+                  // ignore rest
+                  stack.length = 0;
+                  x += dx6;
+                  // y unchanged
+                  path.push({ type: "lineto", x, y });
+                } else {
+                  stack.length = 0;
+                }
+              }
+              break;
+            case 36: // hflex1 (12 36) – 9 numbers
+              {
+                if (stack.length >= 9) {
+                  const dy6 = stack.pop();
+                  const dx6 = stack.pop();
+                  stack.length = 0;
+                  x += dx6;
+                  y += dy6;
+                  path.push({ type: "lineto", x, y });
+                } else {
+                  stack.length = 0;
+                }
+              }
+              break;
+            case 37: // flex1 (12 37) – 11 numbers (dx/dy pairs) last pair determined by remaining distance
+              {
+                if (stack.length >= 11) {
+                  const dyFinal = stack.pop();
+                  const dxFinal = stack.pop();
+                  stack.length = 0;
+                  x += dxFinal;
+                  y += dyFinal;
+                  path.push({ type: "lineto", x, y });
+                } else {
+                  stack.length = 0;
                 }
               }
               break;
@@ -2081,13 +2155,18 @@ export default class FontParser {
         yMin = Math.min(yMin, cmd.y1, cmd.y2, cmd.y3);
         xMax = Math.max(xMax, cmd.x1, cmd.x2, cmd.x3);
         yMax = Math.max(yMax, cmd.y1, cmd.y2, cmd.y3);
-      } else if (cmd.type === "closepath" && currentContour.length > 0) {
-        contours.push(currentContour);
-        currentContour = [];
+      } else if (cmd.type === "closepath") {
+        if (currentContour.length > 0) {
+          contours.push(currentContour);
+          currentContour = [];
+        }
       }
     }
 
-    if (currentContour.length > 0) contours.push(currentContour);
+    // Always push the last contour if it has points
+    if (currentContour.length > 0) {
+      contours.push(currentContour);
+    }
 
     return {
       contours,
@@ -2101,25 +2180,18 @@ export default class FontParser {
 
   // TrueType glyph parsing (simplified)
   parseTrueTypeGlyph(glyphId, recursionDepth = 0) {
-    console.log(
-      `  parseTrueTypeGlyph(${glyphId}, depth=${recursionDepth}) called`
-    );
-
     if (!this.glyphOffsets || glyphId >= this.glyphOffsets.length - 1) {
-      console.log(`    Invalid glyph ID ${glyphId}`);
       return null;
     }
 
     // Check cache first
     const cacheKey = `${glyphId}_${recursionDepth}`;
     if (this.glyphParseCache.has(cacheKey)) {
-      console.log(`    Parse cache hit for ${cacheKey}`);
       return this.glyphParseCache.get(cacheKey);
     }
 
     // Prevent excessive recursion depth
     if (recursionDepth > 10) {
-      console.log(`    Excessive recursion depth for glyph ${glyphId}`);
       const emptyGlyph = {
         contours: [],
         instructions: [],
@@ -2135,7 +2207,6 @@ export default class FontParser {
     const offset = this.glyphOffsets[glyphId];
     const nextOffset = this.glyphOffsets[glyphId + 1];
     if (offset === nextOffset) {
-      console.log(`    Empty glyph ${glyphId}`);
       const emptyGlyph = {
         contours: [],
         instructions: [],
@@ -2155,14 +2226,10 @@ export default class FontParser {
     const xMax = this.readInt16();
     const yMax = this.readInt16();
 
-    console.log(`    Glyph ${glyphId}: numberOfContours=${numberOfContours}`);
-
     let result;
     if (numberOfContours >= 0) {
-      console.log(`    Parsing as simple glyph`);
       result = this.parseSimpleGlyph(numberOfContours, xMin, yMin, xMax, yMax);
     } else {
-      console.log(`    Parsing as composite glyph`);
       result = this.parseCompositeGlyph(
         numberOfContours,
         xMin,
@@ -2174,11 +2241,6 @@ export default class FontParser {
     }
 
     // Cache the result
-    console.log(
-      `    Caching parse result for ${cacheKey}: ${
-        result?.contours?.length || 0
-      } contours`
-    );
     this.glyphParseCache.set(cacheKey, result);
     return result;
   }
