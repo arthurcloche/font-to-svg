@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicroFont.js - Typography Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            margin-top: -20px;
+            margin-bottom: 40px;
+        }
+        
+        .font-container {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .font-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 48px rgba(0,0,0,0.15);
+        }
+        
+        .font-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .font-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status.error {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .status.loading {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .svg-display {
+            width: 100%;
+            height: 180px;
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            background: #fafafa;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .debug-info {
+            margin-top: 16px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .loading-container {
+            text-align: center;
+            padding: 60px;
+            color: white;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+        
+        .letter-group {
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+        
+        .letter-group:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>MicroFont.js</h1>
+    <p class="subtitle">A modern, minimal font parser for TTF and Variable fonts</p>
+    
+    <div id="container">
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <div>Loading fonts...</div>
+        </div>
+    </div>
+
+    <script src="MicroFont.js"></script>
+    <script>
+        const fonts = [
+            'fonts/ttfs/ABCCamera-Medium-Trial.ttf',
+            'fonts/ttfs/AwesomeSerif-RegularTall.ttf',
+            'fonts/ttfs/BebasNeue-Regular.ttf',
+            'fonts/ttfs/GT-Pressura-Mono-Regular-Trial.ttf',
+            'fonts/ttfs/Grtsk-BoldMega.ttf',
+            'fonts/ttfs/HelveticaNowDisplay-Regular.ttf',
+            'fonts/ttfs/Inter_28pt-Medium.ttf',
+            'fonts/ttfs/Obviously-Variable.ttf',
+            'fonts/ttfs/PPEditorialOld-Ultralight.ttf',
+            'fonts/ttfs/PPPlayground-Light.ttf',
+            'fonts/ttfs/RoslindaleDisplayNarrow-Regular-Testing.ttf',
+            'fonts/ttfs/SigmaSerif-Headline.ttf'
+        ];
+
+        const container = document.getElementById('container');
+        const word = 'typography1234567890';
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
+
+        async function loadAndRenderFont(fontPath) {
+            const fontContainer = document.createElement('div');
+            fontContainer.className = 'font-container';
+            
+            const fontName = fontPath.split('/').pop().replace('.ttf', '');
+            
+            // Create header
+            const header = document.createElement('div');
+            header.className = 'font-header';
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'font-name';
+            nameDiv.textContent = fontName;
+            
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = 'Loading...';
+            
+            header.appendChild(nameDiv);
+            header.appendChild(statusDiv);
+            fontContainer.appendChild(header);
+            
+            try {
+                // Load font
+                const response = await fetch(fontPath);
+                if (!response.ok) throw new Error(`Failed to load ${fontPath}`);
+                
+                const buffer = await response.arrayBuffer();
+                const font = new MicroFont(buffer);
+                
+                // Create SVG
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.classList.add('svg-display');
+                
+                // Get text paths
+                const paths = font.getText(word, 100);
+                
+                if (paths.length > 0) {
+                    // Calculate bounds
+                    let minX = 0, maxX = 0, minY = -150, maxY = 50;
+                    for (const pathData of paths) {
+                        maxX = Math.max(maxX, pathData.x + 100);
+                    }
+                    
+                    svg.setAttribute('viewBox', `${minX - 20} ${minY - 20} ${maxX + 40} ${maxY - minY + 40}`);
+                    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                    
+                    // Create group for letters
+                    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    
+                    // Add each letter
+                    paths.forEach((pathData, index) => {
+                        const letterGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                        letterGroup.classList.add('letter-group');
+                        
+                        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        path.setAttribute('d', pathData.path);
+                        path.setAttribute('fill', colors[index % colors.length]);
+                        
+                        letterGroup.appendChild(path);
+                        g.appendChild(letterGroup);
+                    });
+                    
+                    svg.appendChild(g);
+                    fontContainer.appendChild(svg);
+                    
+                    // Update status
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = 'Rendered';
+                    
+                    // Add debug info
+                    const debugDiv = document.createElement('div');
+                    debugDiv.className = 'debug-info';
+                    debugDiv.innerHTML = `
+                        <strong>Font Info:</strong><br>
+                        Units per Em: ${font.head.unitsPerEm}<br>
+                        Number of glyphs: ${font.maxp.numGlyphs}<br>
+                        Tables: ${Object.keys(font.tables).join(', ')}<br>
+                        Characters rendered: ${paths.length}/${word.length}<br>
+                        Variable font: ${font.fvar ? 'Yes' : 'No'}
+                    `;
+                    fontContainer.appendChild(debugDiv);
+                } else {
+                    throw new Error('No paths generated');
+                }
+                
+            } catch (error) {
+                console.error(`Error with ${fontName}:`, error);
+                
+                statusDiv.className = 'status error';
+                statusDiv.textContent = 'Failed';
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = `Error: ${error.message}`;
+                fontContainer.appendChild(errorDiv);
+            }
+            
+            return fontContainer;
+        }
+
+        async function renderAllFonts() {
+            container.innerHTML = '';
+            
+            for (const fontPath of fonts) {
+                const fontElement = await loadAndRenderFont(fontPath);
+                container.appendChild(fontElement);
+            }
+        }
+
+        // Start rendering
+        renderAllFonts();
+    </script>
+</body>
+</html>

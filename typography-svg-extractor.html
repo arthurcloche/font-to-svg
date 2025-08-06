@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typography SVG Path Extractor</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .font-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .font-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        .svg-display {
+            width: 100%;
+            height: 150px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+        .path-data {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+        .error {
+            color: #d32f2f;
+            padding: 10px;
+            background: #ffebee;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Typography SVG Path Extractor</h1>
+    <div id="container">
+        <div class="loading">Loading fonts and extracting paths...</div>
+    </div>
+
+    <script src="resources/typr/typr.js"></script>
+    <script src="resources/typr/typr.u.js"></script>
+    <script>
+        const fonts = [
+            'fonts/ttfs/ABCCamera-Medium-Trial.ttf',
+            'fonts/ttfs/AwesomeSerif-RegularTall.ttf',
+            'fonts/ttfs/BebasNeue-Regular.ttf',
+            'fonts/ttfs/GT-Pressura-Mono-Regular-Trial.ttf',
+            'fonts/ttfs/Grtsk-BoldMega.ttf',
+            'fonts/ttfs/HelveticaNowDisplay-Regular.ttf',
+            'fonts/ttfs/Inter_28pt-Medium.ttf',
+            'fonts/ttfs/Obviously-Variable.ttf',
+            'fonts/ttfs/PPEditorialOld-Ultralight.ttf',
+            'fonts/ttfs/PPPlayground-Light.ttf',
+            'fonts/ttfs/RoslindaleDisplayNarrow-Regular-Testing.ttf',
+            'fonts/ttfs/SigmaSerif-Headline.ttf'
+        ];
+
+        const container = document.getElementById('container');
+        const word = 'typography';
+
+        async function loadFont(fontPath) {
+            try {
+                const response = await fetch(fontPath);
+                if (!response.ok) throw new Error(`Failed to load ${fontPath}`);
+                const buffer = await response.arrayBuffer();
+                const parsed = Typr.parse(buffer);
+                
+                // Handle font collections (TTC files) or single fonts
+                if (Array.isArray(parsed)) {
+                    return parsed[0]; // Use the first font in the collection
+                }
+                
+                // Check if the font has required tables
+                if (!parsed.cmap) {
+                    console.error(`Font ${fontPath} is missing cmap table`);
+                    return null;
+                }
+                
+                return parsed;
+            } catch (error) {
+                console.error(`Error loading ${fontPath}:`, error);
+                return null;
+            }
+        }
+
+        function pathToSVGCommands(path) {
+            let d = '';
+            let crds = path.crds;
+            let ci = 0;
+            
+            for (let i = 0; i < path.cmds.length; i++) {
+                const cmd = path.cmds[i];
+                
+                if (cmd === 'M') {
+                    d += `M${crds[ci]},${crds[ci + 1]} `;
+                    ci += 2;
+                } else if (cmd === 'L') {
+                    d += `L${crds[ci]},${crds[ci + 1]} `;
+                    ci += 2;
+                } else if (cmd === 'C') {
+                    d += `C${crds[ci]},${crds[ci + 1]} ${crds[ci + 2]},${crds[ci + 3]} ${crds[ci + 4]},${crds[ci + 5]} `;
+                    ci += 6;
+                } else if (cmd === 'Q') {
+                    d += `Q${crds[ci]},${crds[ci + 1]} ${crds[ci + 2]},${crds[ci + 3]} `;
+                    ci += 4;
+                } else if (cmd === 'Z') {
+                    d += 'Z ';
+                }
+            }
+            
+            return d.trim();
+        }
+
+        function extractLetterPaths(font, text) {
+            try {
+                // Ensure font has required properties
+                if (!font || !font.cmap) {
+                    console.error('Font missing required cmap table');
+                    return null;
+                }
+                
+                // Get the complete word shape to calculate proper spacing
+                const fullShape = Typr.U.shape(font, text);
+                if (!fullShape || fullShape.length === 0) {
+                    console.error('Could not shape text');
+                    return null;
+                }
+                
+                // Extract individual letter paths with positions
+                const letters = [];
+                let xOffset = 0;
+                
+                for (let i = 0; i < text.length; i++) {
+                    const letter = text[i];
+                    const shape = Typr.U.shape(font, letter);
+                    
+                    if (shape && shape.length > 0) {
+                        const path = Typr.U.shapeToPath(font, shape);
+                        if (path && path.cmds && path.cmds.length > 0) {
+                            letters.push({
+                                letter: letter,
+                                path: pathToSVGCommands(path),
+                                x: xOffset,
+                                advance: fullShape[i] ? fullShape[i].ax : 0
+                            });
+                        }
+                    }
+                    
+                    // Use advance width from the full word shape for proper spacing
+                    if (fullShape[i]) {
+                        xOffset += fullShape[i].ax;
+                    }
+                }
+                
+                return letters;
+            } catch (error) {
+                console.error('Error extracting letter paths:', error);
+                return null;
+            }
+        }
+
+        function getFontBounds(font, text) {
+            try {
+                // Ensure font has required properties
+                if (!font || !font.cmap) {
+                    return { width: 1000, height: 200, minX: 0, minY: -200 };
+                }
+                
+                const shape = Typr.U.shape(font, text);
+                if (!shape || shape.length === 0) {
+                    return { width: 1000, height: 200, minX: 0, minY: -200 };
+                }
+                
+                const path = Typr.U.shapeToPath(font, shape);
+                
+                if (!path || !path.crds || path.crds.length === 0) {
+                    return { width: 1000, height: 200, minX: 0, minY: -200 };
+                }
+                
+                let minX = Infinity, maxX = -Infinity;
+                let minY = Infinity, maxY = -Infinity;
+                
+                for (let i = 0; i < path.crds.length; i += 2) {
+                    const x = path.crds[i];
+                    const y = path.crds[i + 1];
+                    minX = Math.min(minX, x);
+                    maxX = Math.max(maxX, x);
+                    minY = Math.min(minY, y);
+                    maxY = Math.max(maxY, y);
+                }
+                
+                return {
+                    width: maxX - minX,
+                    height: maxY - minY,
+                    minX: minX,
+                    minY: minY
+                };
+            } catch (error) {
+                console.error('Error calculating bounds:', error);
+                return { width: 1000, height: 200, minX: 0, minY: -200 };
+            }
+        }
+
+        function createFontDisplay(fontName, font) {
+            const fontContainer = document.createElement('div');
+            fontContainer.className = 'font-container';
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'font-name';
+            nameDiv.textContent = fontName.split('/').pop().replace('.ttf', '');
+            fontContainer.appendChild(nameDiv);
+            
+            const letterPaths = extractLetterPaths(font, word);
+            
+            if (letterPaths && letterPaths.length > 0) {
+                const bounds = getFontBounds(font, word);
+                const padding = 20;
+                
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.classList.add('svg-display');
+                
+                const viewBoxWidth = bounds.width + padding * 2;
+                const viewBoxHeight = bounds.height + padding * 2;
+                svg.setAttribute('viewBox', `${bounds.minX - padding} ${bounds.minY - padding} ${viewBoxWidth} ${viewBoxHeight}`);
+                svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                
+                // Create a group for all letters
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('transform', `scale(1, -1) translate(0, ${-(bounds.minY * 2 + bounds.height)})`);
+                
+                // Add each letter as a separate path with different colors for visibility
+                const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
+                
+                letterPaths.forEach((letterData, index) => {
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', letterData.path);
+                    path.setAttribute('fill', colors[index % colors.length]);
+                    path.setAttribute('transform', `translate(${letterData.x}, 0)`);
+                    path.setAttribute('data-letter', letterData.letter);
+                    g.appendChild(path);
+                });
+                
+                svg.appendChild(g);
+                fontContainer.appendChild(svg);
+                
+                // Display individual letter paths
+                const pathDataDiv = document.createElement('div');
+                pathDataDiv.className = 'path-data';
+                let pathsHtml = '<strong>Individual Letter SVG Paths:</strong><br>';
+                letterPaths.forEach((letterData, index) => {
+                    pathsHtml += `<br><strong>${letterData.letter} (x:${Math.round(letterData.x)}):</strong> ${letterData.path.substring(0, 100)}...`;
+                });
+                pathDataDiv.innerHTML = pathsHtml;
+                fontContainer.appendChild(pathDataDiv);
+            } else {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.textContent = 'Failed to extract SVG paths for this font';
+                fontContainer.appendChild(errorDiv);
+            }
+            
+            return fontContainer;
+        }
+
+        async function processAllFonts() {
+            container.innerHTML = '';
+            
+            for (const fontPath of fonts) {
+                const font = await loadFont(fontPath);
+                if (font) {
+                    const display = createFontDisplay(fontPath, font);
+                    container.appendChild(display);
+                }
+            }
+        }
+
+        processAllFonts();
+    </script>
+</body>
+</html>
