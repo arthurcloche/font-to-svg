@@ -3,9 +3,9 @@ const path = require("path");
 const FontParser = require("../font-parser");
 
 // Load the font
-const fontPath = path.join(__dirname, "..", "SigmaSerif-Headline.otf");
+const fontPath = path.join(__dirname, "../fonts", "SigmaSerif-Headline.otf");
 const fontBuffer = fs.readFileSync(fontPath).buffer;
-const parser = new FontParser(fontBuffer);
+const parser = new FontParser().fromBuffer(fontBuffer);
 
 // Text to render
 const text = "hello world";
@@ -67,6 +67,8 @@ for (let i = 0; i < text.length; i++) {
         1
       )}) to (${bounds.maxX.toFixed(1)}, ${bounds.maxY.toFixed(1)})`
     );
+  } else {
+    console.error(`glyph '${glyph}' either evaluated false or had no contours - skipping render`);
   }
 
   // Advance to next character position

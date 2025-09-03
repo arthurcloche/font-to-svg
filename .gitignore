@@ -45,6 +45,7 @@ logs/
 dist/
 build/
 out/
+svg-output/
 
 # Environment files
 .env
